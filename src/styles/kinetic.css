@@ -1,0 +1,367 @@
+/* ------------------------------------------------------------------
+ * Kinetic typography opening — black and white, colour only in photos,
+ * no glows
+ * ---------------------------------------------------------------- */
+.kinetic {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  overflow: hidden;
+  background: #070708;
+}
+
+.k-card {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  visibility: hidden;
+  overflow: hidden;
+  --k-text: #f5f5f5;
+  --k-bg: #070708;
+  background: var(--k-bg);
+  color: var(--k-text);
+}
+.k-card[data-bg="light"] {
+  --k-text: #070708;
+  --k-bg: #f5f5f3;
+}
+
+/* Dotted grid + vignette */
+.k-card[data-grid]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgb(255 255 255 / 0.09) 1px, transparent 1.4px);
+  background-size: 26px 26px;
+  mask-image: radial-gradient(ellipse at center, #000 30%, transparent 78%);
+}
+.k-card[data-bg="dark"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgb(0 0 0 / 0.7) 100%);
+  pointer-events: none;
+}
+
+.k-inner {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 0.06em;
+  padding: 0 4vw;
+  text-align: center;
+  will-change: transform, filter, opacity;
+}
+
+/* ---- words ---------------------------------------------------------- */
+.k-chunk {
+  position: relative;
+  z-index: 1;
+  display: block;
+  font-family: var(--font-sans);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.045em;
+  line-height: 0.86;
+  white-space: nowrap;
+  opacity: 0;
+  will-change: transform, filter, opacity;
+}
+.k-chunk[data-size="crop"] {
+  font-size: 46vw;
+  font-weight: 900;
+  letter-spacing: -0.06em;
+  line-height: 0.78;
+}
+.k-chunk[data-size="xxl"] {
+  font-size: clamp(84px, 21vw, 360px);
+}
+.k-chunk[data-size="xl"] {
+  font-size: clamp(60px, 12.5vw, 220px);
+}
+.k-chunk[data-size="lg"] {
+  font-size: clamp(46px, 8.6vw, 150px);
+}
+.k-chunk[data-size="md"] {
+  font-size: clamp(30px, 5vw, 86px);
+  letter-spacing: -0.035em;
+}
+.k-chunk[data-size="sm"] {
+  font-size: clamp(15px, 1.8vw, 28px);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  margin-bottom: 0.6em;
+}
+
+.k-ch {
+  display: inline-block;
+  white-space: pre;
+}
+
+/* Letters filled with a photograph */
+.k-chunk[data-fx="fill"] {
+  background-size: 160% auto;
+  background-position: 20% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 900;
+  -webkit-text-stroke: 1px rgb(255 255 255 / 0.35);
+}
+
+/* Typewriter caret */
+.k-caret {
+  display: inline-block;
+  width: 0.08em;
+  height: 0.8em;
+  margin-left: 0.08em;
+  vertical-align: -0.04em;
+  background: currentColor;
+  opacity: 0;
+  animation: k-blink 0.9s steps(1) infinite;
+}
+@keyframes k-blink {
+  50% {
+    visibility: hidden;
+  }
+}
+
+/* Hollow outline that fills from the left */
+.k-chunk[data-fx="outline"] {
+  color: transparent;
+  -webkit-text-stroke: 2px var(--k-text);
+  --fill: 100%;
+}
+.k-chunk[data-fx="outline"]::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  color: var(--k-text);
+  -webkit-text-stroke: 0;
+  clip-path: inset(0 var(--fill) 0 0);
+}
+
+/* Glitch: two sliced copies jitter, then lock onto the word */
+.k-chunk[data-fx="glitch"] {
+  --g1: 0px;
+  --g2: 0px;
+}
+.k-chunk[data-fx="glitch"]::before,
+.k-chunk[data-fx="glitch"]::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  color: var(--k-text);
+}
+.k-chunk[data-fx="glitch"]::before {
+  clip-path: inset(18% 0 52% 0);
+  transform: translateX(var(--g1));
+}
+.k-chunk[data-fx="glitch"]::after {
+  clip-path: inset(62% 0 12% 0);
+  transform: translateX(var(--g2));
+}
+
+/* ---- photographs ----------------------------------------------------- */
+.k-photo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+}
+.k-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.3;
+  will-change: transform;
+}
+/* On light cards the photo is a pale wash under ink type. */
+.k-card[data-bg="light"] .k-photo img {
+  opacity: 0.22;
+}
+/* Full colour: the photo itself, with a shade so white type reads. */
+.k-photo[data-full] img {
+  opacity: 1;
+}
+.k-photo[data-full]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgb(7 7 8 / 0.45), rgb(7 7 8 / 0.15) 70%),
+    linear-gradient(to top, rgb(7 7 8 / 0.35), transparent 40%);
+}
+
+.k-photo-card {
+  position: absolute;
+  z-index: 0;
+  /* sits just above the words, so the type never fights the photo */
+  left: 50%;
+  bottom: 100%;
+  width: min(34vw, 560px);
+  margin: 0;
+  overflow: hidden;
+  translate: -50% -6%;
+}
+.k-photo-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.k-scatter-img {
+  position: absolute;
+  z-index: 1;
+  object-fit: cover;
+  opacity: 0;
+  box-shadow: 0 18px 50px rgb(0 0 0 / 0.45);
+}
+
+.k-strip {
+  position: absolute;
+  z-index: 0;
+  left: 0;
+  top: 50%;
+  display: flex;
+  gap: 1.4vw;
+  width: max-content;
+  translate: 0 -50%;
+  opacity: 0;
+}
+.k-strip img {
+  width: 24vw;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  filter: brightness(0.6);
+}
+
+/* ---- decorations ----------------------------------------------------- */
+.k-q {
+  position: absolute;
+  z-index: 0;
+  font-family: var(--font-sans);
+  font-weight: 900;
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+}
+.k-q-1 {
+  left: 88%;
+  top: -0.42em;
+  font-size: 54vh;
+  color: var(--k-text);
+}
+.k-q-2 {
+  right: 94%;
+  top: -0.2em;
+  font-size: 30vh;
+  color: transparent;
+  -webkit-text-stroke: 3px var(--k-text);
+}
+.k-q-3 {
+  left: 64%;
+  top: 120%;
+  font-size: 16vh;
+  color: var(--k-text);
+}
+
+.k-cursor {
+  position: absolute;
+  z-index: 3;
+  left: 58%;
+  top: 62%;
+  width: clamp(26px, 2.4vw, 40px);
+  fill: #f5f5f5;
+  stroke: #070708;
+  stroke-width: 1.2;
+  opacity: 0;
+}
+
+.k-slash {
+  position: absolute;
+  z-index: 3;
+  left: 8%;
+  right: 8%;
+  top: 50%;
+  height: clamp(6px, 0.9vh, 12px);
+  background: var(--k-text);
+  transform: scaleX(0);
+}
+.k-slash-1 {
+  rotate: 14deg;
+  transform-origin: left;
+}
+.k-slash-2 {
+  rotate: -14deg;
+  transform-origin: right;
+}
+
+.k-ha {
+  position: absolute;
+  z-index: 4;
+  font: 900 clamp(26px, 3.4vw, 56px) / 1 var(--font-sans);
+  letter-spacing: -0.04em;
+  color: var(--k-text);
+  opacity: 0;
+}
+
+.k-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: difference;
+}
+
+.k-end {
+  position: absolute;
+  inset-inline: 0;
+  bottom: clamp(28px, 7vh, 72px);
+  z-index: 7;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  padding-inline: 24px;
+}
+.k-end > * {
+  opacity: 0;
+}
+
+.k-controls {
+  position: absolute;
+  top: max(20px, env(safe-area-inset-top));
+  right: 24px;
+  z-index: 8;
+  display: flex;
+  gap: 22px;
+  mix-blend-mode: difference;
+}
+.k-controls .text-link {
+  color: #f5f5f5;
+}
+
+@media (max-width: 640px) {
+  .k-chunk {
+    white-space: normal;
+    text-wrap: balance;
+  }
+  .k-chunk[data-fx="type"],
+  .k-chunk[data-fx="scatter"] {
+    white-space: nowrap;
+  }
+  .k-chunk[data-size="crop"] { font-size: 60vw; }
+  .k-chunk[data-size="xxl"] { font-size: 23vw; }
+  .k-chunk[data-size="xl"] { font-size: 14.5vw; }
+  .k-chunk[data-size="lg"] { font-size: 12vw; }
+  .k-chunk[data-size="md"] { font-size: 8.4vw; }
+  .k-photo-card { width: 70vw; }
+  .k-strip img { width: 52vw; }
+  .k-q-1 { left: 60%; top: -0.95em; font-size: 20vh; }
+  .k-q-2 { display: none; }
+  .k-q-3 { left: 12%; top: 135%; font-size: 11vh; }
+}

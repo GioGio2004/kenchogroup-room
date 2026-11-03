@@ -1,0 +1,235 @@
+/* ------------------------------------------------------------------
+ * Shared bits
+ * ---------------------------------------------------------------- */
+.app {
+  position: relative;
+  min-height: 100svh;
+  overflow: hidden;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 52px;
+  padding: 0 26px;
+  border: 1px solid var(--pill);
+  border-radius: 999px;
+  background: var(--pill);
+  color: var(--pill-text);
+  font: 700 13px/1 var(--font-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.35s var(--ease-out), background-color 0.35s, color 0.35s;
+}
+.pill:hover {
+  transform: translateY(-2px);
+}
+.pill:focus-visible,
+.text-link:focus-visible,
+.intro-orb:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 6px;
+}
+.pill-ghost {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--rule-strong);
+}
+.pill-ghost:hover {
+  border-color: var(--text);
+}
+
+.text-link {
+  border: 0;
+  background: none;
+  padding: 6px 0;
+  color: var(--muted);
+  font: 500 12px/1 var(--font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+.text-link:hover {
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------------
+ * Intro: white, black type, one big Start
+ * ---------------------------------------------------------------- */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  background: #f5f5f3;
+  color: #070708;
+}
+
+.intro-stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: clamp(36px, 6vh, 64px);
+  padding: 24px;
+}
+
+.intro-mark {
+  margin: 0;
+  display: grid;
+  justify-items: center;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.82;
+  will-change: transform, opacity;
+}
+.intro-name {
+  display: flex;
+  font-size: clamp(64px, 16vw, 260px);
+}
+.intro-mask {
+  display: inline-block;
+  overflow: hidden;
+  padding-bottom: 0.04em;
+}
+.intro-letter {
+  display: inline-block;
+}
+.intro-group {
+  margin-top: 0.28em;
+  margin-right: -0.42em;
+  font-size: clamp(14px, 1.8vw, 26px);
+  font-weight: 600;
+  letter-spacing: 0.42em;
+  color: rgb(7 7 8 / 0.55);
+}
+
+.intro-meter {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  width: min(260px, 60vw);
+}
+.intro-count {
+  font: 500 12px/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.12em;
+  color: rgb(7 7 8 / 0.55);
+}
+.intro-bar {
+  position: relative;
+  width: 100%;
+  height: 1px;
+  background: rgb(7 7 8 / 0.12);
+  overflow: hidden;
+}
+.intro-bar > span {
+  position: absolute;
+  inset: 0;
+  background: #070708;
+  transform-origin: left;
+  transition: transform 0.4s var(--ease-out);
+}
+
+.intro-center {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 22px;
+  pointer-events: none;
+}
+.intro-center > * {
+  pointer-events: auto;
+}
+
+/* One big Start, a quarter of the screen across. Black, so the opening
+   floods out of it. */
+.intro-orb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: max(25vw, 40vmin);
+  max-width: 62vh;
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 50%;
+  background: #070708;
+  color: #f5f5f3;
+  cursor: pointer;
+  transform: scale(0);
+}
+.intro-orb-label {
+  font: 800 clamp(34px, 4.6vw, 76px) / 1 var(--font-sans);
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+  transition: letter-spacing 0.6s var(--ease-out);
+}
+.intro-orb:hover .intro-orb-label {
+  letter-spacing: 0.02em;
+}
+.intro-orb-ring {
+  position: absolute;
+  inset: 6%;
+  width: 88%;
+  height: 88%;
+  animation: orb-spin 18s linear infinite;
+}
+.intro-orb-ring text {
+  font: 600 9.6px var(--font-sans);
+  fill: #f5f5f3;
+}
+@keyframes orb-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+.intro .text-link {
+  color: rgb(7 7 8 / 0.55);
+}
+.intro .text-link:hover {
+  color: #070708;
+}
+.intro-quiet {
+  opacity: 0;
+}
+
+.intro-chrome {
+  position: absolute;
+  inset-inline: 24px;
+  bottom: max(22px, env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: space-between;
+  font: 500 11px/1 var(--font-sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(7 7 8 / 0.5);
+}
+
+@media (max-width: 640px) {
+  .intro-orb {
+    width: 60vw;
+  }
+  .intro-orb-label {
+    font-size: 11vw;
+  }
+  .intro-chrome span:last-child {
+    display: none;
+  }
+}
