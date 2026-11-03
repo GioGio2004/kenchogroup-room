@@ -4,8 +4,6 @@ import { CARDS, type Card, type Chunk } from '@/lib/kinetic-script'
 import { line, LINES, NARRATION } from '@/lib/narration'
 import { PHOTOS } from '@/lib/scene-assets'
 
-const MAIN = import.meta.env.VITE_MAIN_SITE_URL ?? 'https://kenchogroup.ge'
-
 /* Words land on the voice: chunks start this much before their word. */
 const LEAD = 0.08
 const CUT_LEAD = 0.12
@@ -41,6 +39,8 @@ interface KineticProps {
   revealFrom: number
   /** preloaded blob URLs by asset path */
   urls: Record<string, string>
+  /** the opening is over (played out or skipped): on to the room */
+  onFinish: () => void
 }
 
 /*
@@ -49,13 +49,17 @@ interface KineticProps {
  * One master timeline in narration seconds: the audio clock drives it while
  * the voice plays, its own clock otherwise.
  */
-export default function Kinetic({ audio, sound: startWithSound, revealFrom, urls }: KineticProps) {
+export default function Kinetic({ audio, sound: startWithSound, revealFrom, urls, onFinish }: KineticProps) {
   const u = (src: string) => urls[src] ?? src
   const root = useRef<HTMLElement>(null)
   const tl = useRef<gsap.core.Timeline | null>(null)
   const driver = useRef<'audio' | 'clock'>(startWithSound ? 'audio' : 'clock')
   const [sound, setSound] = useState(startWithSound)
   const [ended, setEnded] = useState(false)
+  const finish = useRef(onFinish)
+  useEffect(() => {
+    finish.current = onFinish
+  })
 
   // The scene grows out of the Start button.
   useGSAP(
@@ -73,7 +77,13 @@ export default function Kinetic({ audio, sound: startWithSound, revealFrom, urls
     () => {
       const reduced = prefersReducedMotion()
       const q = gsap.utils.selector(root)
-      const t = gsap.timeline({ paused: true, onComplete: () => setEnded(true) })
+      const t = gsap.timeline({
+        paused: true,
+        onComplete: () => {
+          setEnded(true)
+          finish.current()
+        },
+      })
       const vw = window.innerWidth
 
       CARDS.forEach((card, i) => {
@@ -305,14 +315,8 @@ export default function Kinetic({ audio, sound: startWithSound, revealFrom, urls
         })
       })
 
-      // The way on, after "…like home."
-      t.fromTo(
-        q('.k-end > *'),
-        { opacity: 0, y: 18 },
-        { opacity: 1, y: 0, duration: 0.8, stagger: 0.1, ease: 'power3.out' },
-        LINES.at(-1)!.end + 0.3,
-      )
-      t.to({}, { duration: 0.01 }, NARRATION.duration + 1.4)
+      // HOME holds for a breath before the room takes over.
+      t.to({}, { duration: 0.01 }, LINES.at(-1)!.end + 1.1)
       tl.current = t
     },
     { scope: root },
@@ -375,21 +379,9 @@ export default function Kinetic({ audio, sound: startWithSound, revealFrom, urls
   const skip = () => {
     audio.current?.pause()
     driver.current = 'clock'
-    tl.current?.progress(1)
+    tl.current?.pause()
     setEnded(true)
-  }
-
-  const replay = () => {
-    const a = audio.current
-    setEnded(false)
-    if (sound && a) {
-      a.currentTime = 0
-      driver.current = 'audio'
-      void a.play()
-    } else {
-      driver.current = 'clock'
-      tl.current?.play(0)
-    }
+    finish.current()
   }
 
   return (
@@ -493,19 +485,15 @@ export default function Kinetic({ audio, sound: startWithSound, revealFrom, urls
 
       <div className="k-flash" aria-hidden="true" />
 
-      <nav className="k-end" aria-label="Explore Kencho Group" inert={!ended}>
-        <a className="pill" href={`${MAIN}/en/gallery`}>Gallery</a>
-        <a className="pill pill-ghost" href={`${MAIN}/en/about`}>About us</a>
-        <a className="pill pill-ghost" href={`${MAIN}/en/contact`}>Contacts</a>
-      </nav>
-
       <div className="k-controls">
         <button type="button" className="text-link" onClick={toggleSound} aria-pressed={sound}>
           {sound ? 'Sound on' : 'Sound off'}
         </button>
-        <button type="button" className="text-link" onClick={ended ? replay : skip}>
-          {ended ? 'Replay' : 'Skip'}
-        </button>
+        {!ended && (
+          <button type="button" className="text-link" onClick={skip}>
+            Skip
+          </button>
+        )}
       </div>
     </section>
   )

@@ -317,21 +317,6 @@
   mix-blend-mode: difference;
 }
 
-.k-end {
-  position: absolute;
-  inset-inline: 0;
-  bottom: clamp(28px, 7vh, 72px);
-  z-index: 7;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  padding-inline: 24px;
-}
-.k-end > * {
-  opacity: 0;
-}
-
 .k-controls {
   position: absolute;
   top: max(20px, env(safe-area-inset-top));

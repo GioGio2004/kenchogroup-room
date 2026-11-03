@@ -1,0 +1,244 @@
+@import "@fontsource/caveat/500.css";
+@import "@fontsource/caveat/700.css";
+
+/* ------------------------------------------------------------------
+ * The landing room: ink on paper
+ * ---------------------------------------------------------------- */
+.room {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow: hidden;
+  background: #f4f2ec;
+  color: #1b1b1a;
+  touch-action: none;
+}
+
+.room-canvas {
+  position: absolute !important;
+  inset: 0;
+}
+
+/* Paper grain over everything (multiply, so ink stays ink). */
+.room-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.43 0 0 0 0 0.4 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---- handwritten labels anchored in the room ---------------------- */
+.room-pins {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+.room-pin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+.room-pin .room-tag {
+  pointer-events: none;
+}
+.room-pin .room-tag[data-on] {
+  pointer-events: auto;
+}
+.room-tag {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: #1b1b1a;
+  text-decoration: none;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.8s var(--ease-out), transform 0.8s var(--ease-out);
+}
+.room-tag[data-on] {
+  opacity: 1;
+  transform: none;
+}
+.room-tag[data-side="left"] {
+  flex-direction: row-reverse;
+  translate: -100% 0;
+  text-align: right;
+}
+.room-tag-dot {
+  position: relative;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 4px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  translate: -7px -7px;
+}
+.room-tag-dot::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.room-tag-dot::before {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0;
+  animation: tag-ping 2.6s var(--ease-out) infinite;
+}
+@keyframes tag-ping {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+.room-tag-body {
+  display: grid;
+  gap: 2px;
+  margin-top: -6px;
+  padding: 6px 10px 8px;
+  border-radius: 4px;
+  background: rgb(244 242 236 / 0.82);
+  font-family: "Caveat", cursive;
+  line-height: 1;
+}
+.room-tag-n {
+  font-size: 15px;
+  font-weight: 500;
+  opacity: 0.55;
+}
+.room-tag-title {
+  font-size: clamp(20px, 1.7vw, 28px);
+  font-weight: 500;
+}
+.room-tag-cta {
+  position: relative;
+  justify-self: start;
+  font-size: clamp(24px, 2.1vw, 34px);
+  font-weight: 700;
+}
+.room-tag[data-side="left"] .room-tag-cta {
+  justify-self: end;
+}
+.room-tag-cta svg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  width: 100%;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 130;
+  stroke-dashoffset: 130;
+  transition: stroke-dashoffset 0.6s var(--ease-out);
+}
+.room-tag:hover .room-tag-cta svg,
+.room-tag:focus-visible .room-tag-cta svg {
+  stroke-dashoffset: 0;
+}
+.room-tag:focus-visible {
+  outline: none;
+}
+
+/* ---- the frame around the room ------------------------------------ */
+.room-ui {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+.room-ui > * {
+  pointer-events: auto;
+}
+.room-mark {
+  position: absolute;
+  left: 24px;
+  top: max(20px, env(safe-area-inset-top));
+  margin: 0;
+  font: 800 18px/0.9 var(--font-sans);
+  letter-spacing: -0.03em;
+}
+.room-mark span {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.42em;
+  opacity: 0.55;
+}
+.room-replay {
+  position: absolute;
+  right: 24px;
+  top: max(20px, env(safe-area-inset-top));
+  border: 0;
+  background: none;
+  padding: 6px 0;
+  color: rgb(27 27 26 / 0.6);
+  font: 500 12px/1 var(--font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+.room-replay:hover {
+  color: #1b1b1a;
+}
+.room-hint {
+  position: absolute;
+  left: 24px;
+  bottom: max(22px, env(safe-area-inset-bottom));
+  margin: 0;
+  font: 500 22px/1 "Caveat", cursive;
+  color: rgb(27 27 26 / 0.6);
+}
+.room-nav {
+  position: absolute;
+  right: 24px;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  display: flex;
+  gap: 22px;
+}
+.room-nav a {
+  color: #1b1b1a;
+  font: 600 12px/1 var(--font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 6px 0;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s;
+}
+.room-nav a:hover {
+  border-color: currentColor;
+}
+
+@media (max-width: 640px) {
+  .room-hint {
+    bottom: 64px;
+  }
+  .room-nav {
+    left: 24px;
+    right: 24px;
+    justify-content: space-between;
+  }
+  .room-tag-title {
+    display: none;
+  }
+}
