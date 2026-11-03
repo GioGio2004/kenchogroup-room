@@ -2,12 +2,114 @@ import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
 /*
- * The hand-drawn room, built in code: a big living room with the kitchen
- * along the back wall. Everything is ink strokes (with an architect's
- * overshoot at the corners) over paper-white fills that hide what is behind.
+ * The hand-drawn room, built in code: a big retro living room with the
+ * kitchen along the back wall, drawn like a designer's presentation board:
+ * ink strokes (overshooting at the corners) over flat colour washes. Every
+ * wash belongs to a material key, so the kitchen can change finish live.
  * Units are metres; the camera stands at the room's open front edge.
  */
 type V3 = [number, number, number]
+
+export type KitchenPart = 'cabinets' | 'fronts' | 'worktop' | 'tile' | 'shelf'
+export type RoomKey =
+  | 'wall'
+  | 'wallSide'
+  | 'floor'
+  | 'glass'
+  | 'curtain'
+  | 'door'
+  | 'opening'
+  | 'frame'
+  | 'plinth'
+  | 'appliance'
+  | 'steel'
+  | 'media'
+  | 'walnut'
+  | 'tv'
+  | 'rug'
+  | 'leather'
+  | 'pot'
+  | 'art1'
+  | 'art2'
+  | 'art3'
+export type FillKey = KitchenPart | RoomKey
+export type Zone = 'kitchen' | 'door' | 'media'
+
+export const PAPER = '#f4f2ec'
+
+/* The living room's fixed retro palette (sRGB). */
+export const ROOM_COLORS: Record<RoomKey, string> = {
+  wall: '#efe5d3',
+  wallSide: '#e4d6bf',
+  floor: '#dcc29a',
+  glass: '#d3ddd6',
+  curtain: '#d9a94f',
+  door: '#d29b42',
+  opening: '#3a3029',
+  frame: '#c7a274',
+  plinth: '#9c8670',
+  appliance: '#2b2a27',
+  steel: '#c5c8c3',
+  media: '#c79c69',
+  walnut: '#7b5437',
+  tv: '#24221e',
+  rug: '#b5603b',
+  leather: '#94552f',
+  pot: '#c06e47',
+  art1: '#d6a048',
+  art2: '#6f8f86',
+  art3: '#c4684a',
+}
+
+export const KITCHEN_PARTS: KitchenPart[] = ['cabinets', 'fronts', 'worktop', 'tile', 'shelf']
+export const FILL_KEYS = [...KITCHEN_PARTS, ...(Object.keys(ROOM_COLORS) as RoomKey[])] as FillKey[]
+
+export interface KitchenTheme {
+  id: string
+  name: string
+  note: string
+  colors: Record<KitchenPart, string>
+  /** what each finish is, for the board and the annotations */
+  names: Record<Exclude<KitchenPart, 'shelf'>, string>
+}
+
+export const KITCHEN_THEMES: KitchenTheme[] = [
+  {
+    id: 'sage',
+    name: 'Sage & oak',
+    note: 'Matte sage over light oak, quartz on top.',
+    colors: { cabinets: '#8e9b85', fronts: '#cba57a', worktop: '#ece8df', tile: '#e9e2d4', shelf: '#cba57a' },
+    names: { cabinets: 'Matte sage lacquer', fronts: 'Light oak veneer', worktop: 'Quartz stone', tile: 'Fluted cream tile' },
+  },
+  {
+    id: 'forest',
+    name: 'Forest green',
+    note: 'Deep forest green with walnut and marble.',
+    colors: { cabinets: '#3e5848', fronts: '#7a5337', worktop: '#e9e5dc', tile: '#dde2d8', shelf: '#7a5337' },
+    names: { cabinets: 'Forest green lacquer', fronts: 'American walnut', worktop: 'Calacatta marble', tile: 'Pale green zellige' },
+  },
+  {
+    id: 'white',
+    name: 'Warm white',
+    note: 'Warm white with honey oak and travertine.',
+    colors: { cabinets: '#f0eadf', fronts: '#d5b88e', worktop: '#cac2b5', tile: '#f4f0e8', shelf: '#d5b88e' },
+    names: { cabinets: 'Warm white lacquer', fronts: 'Honey oak', worktop: 'Grey travertine', tile: 'Gloss white tile' },
+  },
+  {
+    id: 'greige',
+    name: 'Greige & graphite',
+    note: 'Soft greige with graphite and pale quartz.',
+    colors: { cabinets: '#b3aa9b', fronts: '#4a4744', worktop: '#efebe4', tile: '#e2dbcf', shelf: '#8b7864' },
+    names: { cabinets: 'Greige matte', fronts: 'Graphite matte', worktop: 'Pale quartz', tile: 'Stone tile' },
+  },
+  {
+    id: 'terracotta',
+    name: 'Retro terracotta',
+    note: 'A seventies terracotta and cream, terrazzo on top.',
+    colors: { cabinets: '#c06a4a', fronts: '#eadcc3', worktop: '#efe6d6', tile: '#e8d2b2', shelf: '#b5885a' },
+    names: { cabinets: 'Terracotta lacquer', fronts: 'Cream lacquer', worktop: 'Terrazzo', tile: 'Sand tile' },
+  },
+]
 
 export interface Stroke {
   a: V3
@@ -16,13 +118,23 @@ export interface Stroke {
   tone: number
   /** draw a second, lighter pass over the stroke */
   double: boolean
+  /** coloured pencil instead of ink (sRGB 0..1) */
+  color?: V3
+}
+
+export interface Layer {
+  strokes: Stroke[]
+  fills: Partial<Record<FillKey, THREE.BufferGeometry>>
 }
 
 export interface SketchModel {
-  strokes: Stroke[]
-  fills: THREE.BufferGeometry
-  darkFills: THREE.BufferGeometry
-  anchors: Record<'gallery' | 'about' | 'contact', THREE.Vector3>
+  main: Layer
+  /** the workshop door's leaf, drawn around its hinge so it can swing */
+  door: Layer
+  hinge: V3
+  anchors: Record<string, THREE.Vector3>
+  /** clickable volumes */
+  zones: Record<Zone, { min: V3; max: V3 }>
 }
 
 export const ROOM = { w: 9, d: 7, h: 2.9 }
@@ -31,6 +143,9 @@ const X1 = ROOM.w / 2
 const Z0 = -ROOM.d / 2
 const Z1 = ROOM.d / 2
 const H = ROOM.h
+const LEAF: V3 = [0.36, 0.48, 0.3]
+const CREAM: V3 = [0.94, 0.87, 0.74]
+const ORANGE: V3 = [0.86, 0.46, 0.2]
 
 function seeded(seed: number) {
   let s = seed >>> 0
@@ -42,24 +157,49 @@ function seeded(seed: number) {
   }
 }
 
+/* Flat, designer's shading: tops lit, fronts a touch down, sides darker. */
+function faceShade(x: number, y: number, z: number) {
+  if (y > 0.5) return 1
+  if (y < -0.5) return 0.6
+  if (Math.abs(x) > 0.5) return 0.78
+  return z > 0 ? 0.9 : 0.8
+}
+
 class Builder {
   strokes: Stroke[] = []
-  private fills: THREE.BufferGeometry[] = []
-  private dark: THREE.BufferGeometry[] = []
-  private rnd = seeded(7)
+  private fills: Partial<Record<FillKey, THREE.BufferGeometry[]>> = {}
+  private rnd: () => number
 
-  line(a: V3, b: V3, tone = 0.9, double = true) {
-    this.strokes.push({ a, b, tone, double })
+  constructor(seed = 7) {
+    this.rnd = seeded(seed)
+  }
+
+  line(a: V3, b: V3, tone = 0.9, double = true, color?: V3) {
+    this.strokes.push({ a, b, tone, double, color })
   }
 
   /** a polyline through points */
-  path(points: V3[], tone = 0.9, double = true) {
-    for (let i = 0; i < points.length - 1; i++) this.line(points[i], points[i + 1], tone, double)
+  path(points: V3[], tone = 0.9, double = true, color?: V3) {
+    for (let i = 0; i < points.length - 1; i++) this.line(points[i], points[i + 1], tone, double, color)
   }
 
-  /** an axis-aligned box: 12 edges, plus a paper fill that hides what is behind */
-  box(min: V3, max: V3, opts: { tone?: number; fill?: boolean; dark?: boolean } = {}) {
-    const { tone = 0.9, fill = true, dark = false } = opts
+  /** a flat colour wash with no strokes of its own (walls, floor, glass) */
+  wash(min: V3, max: V3, key: FillKey) {
+    this.fill(min, max, key, 1)
+  }
+
+  private fill(min: V3, max: V3, key: FillKey, shade?: number) {
+    const g = new THREE.BoxGeometry(max[0] - min[0], max[1] - min[1], max[2] - min[2]).toNonIndexed()
+    g.translate((min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2)
+    const n = g.getAttribute('normal')
+    const c = new Float32Array(n.count * 3)
+    for (let i = 0; i < n.count; i++) c.fill(shade ?? faceShade(n.getX(i), n.getY(i), n.getZ(i)), i * 3, i * 3 + 3)
+    g.setAttribute('color', new THREE.BufferAttribute(c, 3))
+    ;(this.fills[key] ??= []).push(g)
+  }
+
+  /** an axis-aligned box: 12 ink edges over a shaded colour fill */
+  box(min: V3, max: V3, key: FillKey | null, tone = 0.9) {
     const [x0, y0, z0] = min
     const [x1, y1, z1] = max
     const c: V3[] = [
@@ -72,11 +212,7 @@ class Builder {
       [0, 4], [1, 5], [2, 6], [3, 7],
     ]
     for (const [i, j] of edges) this.line(c[i], c[j], tone)
-    if (fill) {
-      const g = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0)
-      g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2)
-      ;(dark ? this.dark : this.fills).push(g.toNonIndexed())
-    }
+    if (key) this.fill(min, max, key)
   }
 
   /** vertical divisions across a box's front face (z = zf), e.g. door joints */
@@ -97,23 +233,23 @@ class Builder {
   }
 
   /** a ring (polygon) in a horizontal plane */
-  ring(cx: number, y: number, cz: number, r: number, tone = 0.8, seg = 14) {
+  ring(cx: number, y: number, cz: number, r: number, tone = 0.8, seg = 14, color?: V3) {
     const pts: V3[] = []
     for (let i = 0; i <= seg; i++) {
       const t = (i / seg) * Math.PI * 2
       pts.push([cx + Math.cos(t) * r, y, cz + Math.sin(t) * r])
     }
-    this.path(pts, tone, false)
+    this.path(pts, tone, false, color)
   }
 
   /** diagonal pencil hatching across a floor patch */
-  hatchFloor(x0: number, x1: number, z0: number, z1: number, spacing = 0.07, tone = 0.32) {
+  hatchFloor(x0: number, x1: number, z0: number, z1: number, spacing = 0.07, tone = 0.32, y = 0.003) {
     for (let x = x0 - (z1 - z0); x < x1; x += spacing) {
       const ax = Math.max(x0, x)
       const az = z0 + (ax - x)
       const bx = Math.min(x1, x + (z1 - z0))
       const bz = z0 + (bx - x)
-      if (bx > ax + 0.02) this.line([ax, 0.003, az], [bx, 0.003, bz], tone * (0.7 + this.rnd() * 0.4), false)
+      if (bx > ax + 0.02) this.line([ax, y, az], [bx, y, bz], tone * (0.7 + this.rnd() * 0.4), false)
     }
   }
 
@@ -132,13 +268,12 @@ class Builder {
     return this.rnd
   }
 
-  build(anchors: SketchModel['anchors']): SketchModel {
-    return {
-      strokes: this.strokes,
-      fills: mergeGeometries(this.fills, false),
-      darkFills: mergeGeometries(this.dark, false),
-      anchors,
+  layer(): Layer {
+    const fills: Layer['fills'] = {}
+    for (const [key, list] of Object.entries(this.fills) as Array<[FillKey, THREE.BufferGeometry[]]>) {
+      fills[key] = mergeGeometries(list, false)
     }
+    return { strokes: this.strokes, fills }
   }
 }
 
@@ -146,7 +281,11 @@ export function buildRoom(): SketchModel {
   const s = new Builder()
   const r = s.random
 
-  // ---- the shell ---------------------------------------------------------
+  // ---- the shell: washes, then the ink ------------------------------------
+  s.wash([X0, -0.02, Z0], [X1, 0, Z1], 'floor')
+  s.wash([X0, 0, Z0 - 0.03], [X1, H, Z0], 'wall')
+  s.wash([X0 - 0.03, 0, Z0], [X0, H, Z1], 'wallSide')
+  s.wash([X1, 0, Z0], [X1 + 0.03, H, Z1], 'wallSide')
   s.line([X0, 0, Z0], [X1, 0, Z0], 1)
   s.line([X0, 0, Z0], [X0, 0, Z1], 1)
   s.line([X1, 0, Z0], [X1, 0, Z1], 1)
@@ -156,62 +295,95 @@ export function buildRoom(): SketchModel {
   s.line([X0, H, Z0], [X0, H, Z1], 0.7)
   s.line([X1, H, Z0], [X1, H, Z1], 0.7)
 
-  // Window wall (right): a tall glazed opening with mullions and a sill.
-  const wx = X1 - 0.01
+  // Window wall (right): glazing, mullions, a sill, far rooftops, a curtain.
+  const wx = X1 - 0.006
+  s.wash([X1 - 0.004, 0.35, -2.6], [X1, 2.55, 1.3], 'glass')
   s.rect([wx, 0.35, -2.6], [wx, 0.35, 1.3], [wx, 2.55, 1.3], [wx, 2.55, -2.6], 0.95)
   for (const z of [-1.3, 0.0]) s.line([wx, 0.35, z], [wx, 2.55, z], 0.75)
-  s.line([wx, 0.35, -2.7], [wx - 0.12, 0.35, -2.7], 0.6, false)
   s.line([wx - 0.12, 0.32, -2.7], [wx - 0.12, 0.32, 1.4], 0.7)
-  // a hint of the view: a few far rooftops
   s.path([[wx, 0.9, -2.5], [wx, 1.15, -2.1], [wx, 1.15, -1.7], [wx, 0.95, -1.4]], 0.28, false)
   s.path([[wx, 0.8, -0.2], [wx, 1.25, 0.15], [wx, 1.05, 0.6], [wx, 1.05, 1.2]], 0.28, false)
+  s.line([X1 - 0.09, 2.72, -3.2], [X1 - 0.09, 2.72, 1.5], 0.8)
+  s.wash([X1 - 0.075, 0.06, -3.1], [X1 - 0.02, 2.7, -2.62], 'curtain')
+  s.rect([X1 - 0.076, 0.06, -3.1], [X1 - 0.076, 2.7, -3.1], [X1 - 0.076, 2.7, -2.62], [X1 - 0.076, 0.06, -2.62], 0.75)
+  for (const z of [-2.98, -2.86, -2.74]) s.line([X1 - 0.077, 0.1, z], [X1 - 0.077, 2.66, z], 0.35, false)
 
-  // Workshop door (left wall, just past the kitchen).
-  const dx = X0 + 0.01
-  s.rect([dx, 0, -2.45], [dx, 2.15, -2.45], [dx, 2.15, -1.5], [dx, 0, -1.5], 0.95)
-  s.rect([dx, 0.08, -2.37], [dx, 2.07, -2.37], [dx, 2.07, -1.58], [dx, 0.08, -1.58], 0.45, false)
-  s.line([dx + 0.01, 1.05, -1.66], [dx + 0.01, 1.05, -1.8], 0.9, false)
+  // Gallery wall (left): three framed prints.
+  const fx = X0 + 0.04
+  const frame = (z0: number, z1: number, y0: number, y1: number, art: FillKey) => {
+    s.box([X0, y0, z0], [fx, y1, z1], 'frame', 0.85)
+    s.wash([fx, y0 + 0.06, z0 + 0.06], [fx + 0.005, y1 - 0.06, z1 - 0.06], art)
+    s.rect([fx + 0.006, y0 + 0.06, z0 + 0.06], [fx + 0.006, y1 - 0.06, z0 + 0.06], [fx + 0.006, y1 - 0.06, z1 - 0.06], [fx + 0.006, y0 + 0.06, z1 - 0.06], 0.6, false)
+  }
+  frame(-2.35, -1.6, 1.2, 2.1, 'art1')
+  frame(-1.42, -0.5, 1.5, 2.1, 'art2')
+  frame(-1.42, -0.95, 0.95, 1.35, 'art3')
+  // the prints: a setting sun, a horizon, a moon
+  const sun: V3[] = []
+  for (let i = 0; i <= 10; i++) {
+    const t = (i / 10) * Math.PI
+    sun.push([fx + 0.007, 1.5 + Math.sin(t) * 0.2, -1.975 + Math.cos(t) * 0.2])
+  }
+  s.path(sun, 0.75, false)
+  s.line([fx + 0.007, 1.5, -2.25], [fx + 0.007, 1.5, -1.7], 0.75, false)
+  s.path([[fx + 0.007, 1.75, -1.34], [fx + 0.007, 1.86, -1.1], [fx + 0.007, 1.72, -0.85], [fx + 0.007, 1.84, -0.58]], 0.7, false)
+  const moon: V3[] = []
+  for (let i = 0; i <= 12; i++) {
+    const t = (i / 12) * Math.PI * 2
+    moon.push([fx + 0.007, 1.15 + Math.sin(t) * 0.08, -1.185 + Math.cos(t) * 0.08])
+  }
+  s.path(moon, 0.6, false, CREAM)
 
   // Floorboards (faint, slightly ragged lengths).
   for (let x = X0 + 0.55; x < X1; x += 0.55) {
     const zStart = Z0 + r() * 0.4
-    s.line([x, 0.002, zStart], [x, 0.002, Z1 - r() * 1.2], 0.18, false)
+    s.line([x, 0.002, zStart], [x, 0.002, Z1 - r() * 1.2], 0.2, false)
   }
 
-  // ---- the kitchen (back wall, left half) --------------------------------
-  const zBack = Z0
+  // ---- the kitchen (back wall, left) ---------------------------------------
   const zFront = Z0 + 0.6
-  // Tall units: oven column and larder.
-  s.box([-4.4, 0, zBack], [-3.2, 2.4, zFront])
+  // Tall units with a built-in oven.
+  s.box([-4.4, 0, Z0], [-3.2, 2.4, zFront], 'cabinets')
   s.doors(-4.4, -3.2, 0.08, 2.4, zFront, 2)
-  s.rect([-4.32, 0.9, zFront + 0.003], [-3.86, 0.9, zFront + 0.003], [-3.86, 1.48, zFront + 0.003], [-4.32, 1.48, zFront + 0.003], 0.8, false)
-  s.line([-4.27, 1.4, zFront + 0.004], [-3.91, 1.4, zFront + 0.004], 0.5, false)
-  // Base run with plinth, worktop, hob and sink.
-  s.box([-3.2, 0.1, zBack], [0.6, 0.88, zFront - 0.02])
-  s.line([-3.2, 0.1, zFront - 0.06], [0.6, 0.1, zFront - 0.06], 0.4, false)
-  s.doors(-3.2, 0.6, 0.12, 0.86, zFront - 0.02, 6)
-  s.box([-3.22, 0.88, zBack], [0.62, 0.92, zFront + 0.02])
-  for (const [hx, hz] of [[-1.4, -3.05], [-1.1, -3.05], [-1.4, -3.3], [-1.1, -3.3]] as const) s.ring(hx, 0.925, hz, 0.08, 0.55, 10)
-  s.rect([-2.7, 0.925, -3.32], [-2.15, 0.925, -3.32], [-2.15, 0.925, -3.0], [-2.7, 0.925, -3.0], 0.7, false)
-  s.path([[-2.42, 0.925, -3.4], [-2.42, 1.18, -3.4], [-2.42, 1.18, -3.18]], 0.8, false)
-  // Wall cabinets and the under-cabinet shadow on the splashback.
-  s.box([-3.2, 1.45, zBack], [0.6, 2.25, Z0 + 0.36])
-  s.doors(-3.2, 0.6, 1.45, 2.25, Z0 + 0.36, 5)
-  s.hatchWall(-3.2, 0.6, 1.32, 1.45, zBack + 0.002, 0.05, 0.3)
+  s.box([-4.32, 0.9, zFront], [-3.86, 1.48, zFront + 0.015], 'appliance', 0.85)
+  s.line([-4.27, 1.4, zFront + 0.017], [-3.91, 1.4, zFront + 0.017], 0.2, false)
+  // Base run: plinth, doors, worktop, hob and sink.
+  s.box([-3.2, 0, Z0], [0.2, 0.1, zFront - 0.06], 'plinth', 0.6)
+  s.box([-3.2, 0.1, Z0], [0.2, 0.88, zFront - 0.02], 'fronts')
+  s.doors(-3.2, 0.2, 0.12, 0.86, zFront - 0.02, 6)
+  s.box([-3.22, 0.88, Z0], [0.22, 0.92, zFront + 0.02], 'worktop')
+  s.box([-1.56, 0.92, -3.42], [-0.94, 0.926, -2.95], 'appliance', 0.8)
+  for (const [hx, hz] of [[-1.4, -3.07], [-1.1, -3.07], [-1.4, -3.3], [-1.1, -3.3]] as const) s.ring(hx, 0.928, hz, 0.08, 0.18, 10)
+  s.box([-2.7, 0.92, -3.32], [-2.15, 0.924, -3.0], 'steel', 0.7)
+  s.path([[-2.42, 0.925, -3.4], [-2.42, 1.18, -3.4], [-2.42, 1.18, -3.18]], 0.85, false)
+  // Fluted tile splashback.
+  s.wash([-3.2, 0.92, Z0], [0.2, 1.45, Z0 + 0.006], 'tile')
+  for (let x = -3.12; x < 0.18; x += 0.09) s.line([x, 0.93, Z0 + 0.007], [x, 1.44, Z0 + 0.007], 0.22, false)
+  // Wall cabinets, then open shelves with books and a jar.
+  s.box([-3.2, 1.45, Z0], [-0.4, 2.25, Z0 + 0.36], 'cabinets')
+  s.doors(-3.2, -0.4, 1.45, 2.25, Z0 + 0.36, 4)
+  s.hatchWall(-3.2, -0.4, 1.33, 1.45, Z0 + 0.008, 0.05, 0.28)
+  for (const y of [1.55, 1.85, 2.15]) s.box([-0.4, y, Z0], [0.2, y + 0.035, Z0 + 0.3], 'shelf', 0.8)
+  s.box([-0.3, 1.885, Z0 + 0.04], [-0.25, 2.1, Z0 + 0.24], 'art1', 0.75)
+  s.box([-0.25, 1.885, Z0 + 0.04], [-0.19, 2.06, Z0 + 0.24], 'art2', 0.75)
+  s.box([-0.19, 1.885, Z0 + 0.04], [-0.15, 2.12, Z0 + 0.24], 'art3', 0.75)
+  s.path([[0.0, 1.585, Z0 + 0.15], [-0.03, 1.66, Z0 + 0.15], [0.02, 1.74, Z0 + 0.15], [0.1, 1.74, Z0 + 0.15], [0.15, 1.66, Z0 + 0.15], [0.12, 1.585, Z0 + 0.15]], 0.75, false)
 
-  // Island with fluted front, worktop and stools.
-  s.box([-2.7, 0, -1.75], [-0.4, 0.9, -0.85])
-  for (let x = -2.62; x < -0.45; x += 0.08) s.line([x, 0.04, -0.849], [x, 0.86, -0.849], 0.38, false)
-  s.box([-2.78, 0.9, -1.8], [-0.32, 0.95, -0.8])
+  // Island: fluted front, worktop, a fruit bowl, stools and pendants.
+  s.box([-2.7, 0, -1.75], [-0.4, 0.9, -0.85], 'fronts')
+  for (let x = -2.62; x < -0.45; x += 0.08) s.line([x, 0.04, -0.849], [x, 0.86, -0.849], 0.3, false)
+  s.box([-2.78, 0.9, -1.8], [-0.32, 0.95, -0.8], 'worktop')
   s.hatchFloor(-2.75, -0.35, -0.85, -0.5, 0.06, 0.3)
+  s.ring(-2.1, 0.955, -1.32, 0.16, 0.8, 14)
+  for (const [ox, oz] of [[-0.05, -0.04], [0.06, 0.02], [-0.01, 0.07]] as const) s.ring(-2.1 + ox, 0.99, -1.32 + oz, 0.05, 0.9, 8, ORANGE)
+  s.box([-1.22, 0.95, -1.42], [-1.06, 0.958, -1.33], 'appliance', 0.75)
   for (const sx of [-2.2, -1.55, -0.9]) {
     const sz = -0.42
-    s.box([sx - 0.18, 0.72, sz - 0.18], [sx + 0.18, 0.77, sz + 0.18], { tone: 0.85 })
+    s.box([sx - 0.18, 0.72, sz - 0.18], [sx + 0.18, 0.77, sz + 0.18], 'walnut', 0.85)
     for (const [lx, lz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]] as const) {
       s.line([sx + lx * 0.15, 0.72, sz + lz * 0.15], [sx + lx * 0.2, 0, sz + lz * 0.2], 0.8, false)
     }
     s.rect([sx - 0.17, 0.28, sz - 0.17], [sx + 0.17, 0.28, sz - 0.17], [sx + 0.17, 0.28, sz + 0.17], [sx - 0.17, 0.28, sz + 0.17], 0.45, false)
-    // Pendant over each stool.
     const pz = -1.3
     s.line([sx, H, pz], [sx, 1.78, pz], 0.55, false)
     s.ring(sx, 1.62, pz, 0.13, 0.8, 12)
@@ -220,60 +392,121 @@ export function buildRoom(): SketchModel {
       s.line([sx, 1.78, pz], [sx + Math.cos(t) * 0.13, 1.62, pz + Math.sin(t) * 0.13], 0.55, false)
     }
   }
-  // A phone on the island.
-  s.box([-1.22, 0.95, -1.42], [-1.06, 0.958, -1.33], { tone: 0.75 })
 
-  // ---- the living area (right half) --------------------------------------
-  // Fluted media wall with a TV and a floating cabinet: Kencho's signature.
-  s.box([1.0, 0, zBack], [4.4, 2.6, zBack + 0.08])
-  for (let x = 1.12; x < 4.35; x += 0.12) s.line([x, 0.02, zBack + 0.081], [x, 2.58, zBack + 0.081], 0.3, false)
-  s.box([1.9, 1.15, zBack + 0.08], [3.4, 1.95, zBack + 0.12], { dark: true })
-  s.box([1.4, 0.25, zBack + 0.08], [3.9, 0.62, zBack + 0.52])
-  s.doors(1.4, 3.9, 0.25, 0.62, zBack + 0.52, 3)
-  s.hatchWall(1.4, 3.9, 0.12, 0.25, zBack + 0.082, 0.05, 0.28)
+  // ---- the workshop door (back wall, between kitchen and living) ----------
+  s.wash([0.38, 0, Z0], [1.37, 2.17, Z0 + 0.003], 'frame')
+  s.wash([0.45, 0, Z0 + 0.003], [1.3, 2.1, Z0 + 0.005], 'opening')
+  s.rect([0.38, 0, Z0 + 0.012], [0.38, 2.17, Z0 + 0.012], [1.37, 2.17, Z0 + 0.012], [1.37, 0, Z0 + 0.012], 0.95)
+  s.path([[0.45, 0, Z0 + 0.012], [0.45, 2.1, Z0 + 0.012], [1.3, 2.1, Z0 + 0.012], [1.3, 0, Z0 + 0.012]], 0.8, false)
+  // a glimpse of the workshop behind it: a bench, tools on a pegboard, a lamp
+  const wz = Z0 + 0.006
+  s.line([0.5, 0.85, wz], [1.25, 0.85, wz], 0.12, false)
+  s.line([0.5, 0.8, wz], [1.25, 0.8, wz], 0.12, false)
+  s.line([0.57, 0.8, wz], [0.57, 0.02, wz], 0.12, false)
+  s.line([1.18, 0.8, wz], [1.18, 0.02, wz], 0.12, false)
+  s.path([[0.6, 1.5, wz], [0.8, 1.42, wz], [0.8, 1.3, wz], [0.6, 1.38, wz], [0.6, 1.5, wz]], 0.12, false)
+  s.line([0.98, 1.58, wz], [0.98, 1.26, wz], 0.12, false)
+  s.line([0.92, 1.58, wz], [1.05, 1.58, wz], 0.12, false)
+  s.line([1.12, 1.55, wz], [1.12, 1.3, wz], 0.12, false)
+  s.line([0.875, 2.1, wz], [0.875, 1.88, wz], 0.12, false)
+  s.path([[0.8, 1.84, wz], [0.95, 1.84, wz], [0.875, 1.9, wz], [0.8, 1.84, wz]], 0.1, false)
 
-  // Rug, coffee table and a wooden lounge chair.
-  s.rect([1.1, 0.004, -2.0], [4.0, 0.004, -2.0], [4.0, 0.004, 1.0], [1.1, 0.004, 1.0], 0.55)
-  s.rect([1.25, 0.005, -1.85], [3.85, 0.005, -1.85], [3.85, 0.005, 0.85], [1.25, 0.005, 0.85], 0.25, false)
-  s.box([1.9, 0.34, -1.0], [3.2, 0.4, -0.2])
-  for (const [lx, lz] of [[2.0, -0.9], [3.1, -0.9], [3.1, -0.3], [2.0, -0.3]] as const) {
-    s.line([lx, 0.34, lz], [lx, 0, lz], 0.8, false)
+  // ---- the living area (right) ---------------------------------------------
+  // Fluted media wall with a TV and a floating cabinet.
+  s.box([1.55, 0, Z0], [4.4, 2.6, Z0 + 0.08], 'media')
+  for (let x = 1.67; x < 4.35; x += 0.12) s.line([x, 0.02, Z0 + 0.081], [x, 2.58, Z0 + 0.081], 0.3, false)
+  s.box([2.2, 1.15, Z0 + 0.08], [3.7, 1.95, Z0 + 0.12], 'tv')
+  s.line([2.35, 1.85, Z0 + 0.123], [2.6, 1.6, Z0 + 0.123], 0.22, false)
+  s.line([2.45, 1.88, Z0 + 0.123], [2.62, 1.71, Z0 + 0.123], 0.22, false)
+  s.box([1.95, 0.25, Z0 + 0.08], [3.95, 0.62, Z0 + 0.52], 'walnut')
+  s.doors(1.95, 3.95, 0.25, 0.62, Z0 + 0.52, 3)
+  s.hatchWall(1.95, 3.95, 0.12, 0.25, Z0 + 0.082, 0.05, 0.28)
+
+  // Rug (with woven stripes), coffee table, a lounge chair and an arc lamp.
+  s.wash([1.3, 0, -2.2], [4.1, 0.012, 0.9], 'rug')
+  s.rect([1.3, 0.013, -2.2], [4.1, 0.013, -2.2], [4.1, 0.013, 0.9], [1.3, 0.013, 0.9], 0.6)
+  for (const z of [-1.98, -1.88, 0.58, 0.68]) s.line([1.45, 0.013, z], [3.95, 0.013, z], 0.8, false, CREAM)
+  s.box([2.25, 0.34, -1.1], [3.55, 0.4, -0.3], 'walnut')
+  for (const [lx, lz] of [[2.35, -1.0], [3.45, -1.0], [3.45, -0.4], [2.35, -0.4]] as const) {
+    s.line([lx, 0.34, lz], [lx, 0.013, lz], 0.8, false)
   }
-  s.hatchFloor(1.95, 3.15, -0.95, -0.25, 0.08, 0.22)
-  s.box([3.3, 0.32, 0.05], [4.0, 0.42, 0.75])
-  s.box([3.3, 0.42, 0.66], [4.0, 0.92, 0.75])
+  s.hatchFloor(2.3, 3.5, -1.05, -0.35, 0.08, 0.25, 0.014)
+  s.box([2.55, 0.4, -0.88], [2.9, 0.43, -0.62], 'art2', 0.75)
+  s.path([[3.2, 0.4, -0.7], [3.17, 0.5, -0.7], [3.21, 0.58, -0.7], [3.27, 0.58, -0.7], [3.31, 0.5, -0.7], [3.28, 0.4, -0.7]], 0.75, false)
+  s.box([3.3, 0.32, 0.05], [4.0, 0.42, 0.75], 'leather')
+  s.box([3.3, 0.42, 0.66], [4.0, 0.92, 0.75], 'leather')
   for (const [lx, lz] of [[3.33, 0.08], [3.97, 0.08], [3.97, 0.72], [3.33, 0.72]] as const) {
-    s.line([lx, 0.32, lz], [lx + (lx < 3.6 ? -0.04 : 0.04), 0, lz + (lz < 0.4 ? -0.05 : 0.05)], 0.8, false)
+    s.line([lx, 0.32, lz], [lx + (lx < 3.6 ? -0.04 : 0.04), 0.013, lz + (lz < 0.4 ? -0.05 : 0.05)], 0.8, false)
+  }
+  const arc: V3[] = []
+  for (let i = 0; i <= 12; i++) {
+    const t = i / 12
+    const u = 1 - t
+    arc.push([
+      u * u * 4.18 + 2 * u * t * 4.25 + t * t * 3.45,
+      u * u * 0.02 + 2 * u * t * 2.75 + t * t * 2.1,
+      u * u * 1.15 + 2 * u * t * 0.95 + t * t * 0.3,
+    ])
+  }
+  s.path(arc, 0.85, false)
+  s.ring(4.18, 0.015, 1.15, 0.16, 0.8, 12)
+  s.ring(3.45, 1.9, 0.3, 0.22, 0.85, 14)
+  for (let k = 0; k < 6; k++) {
+    const t = (k / 6) * Math.PI * 2
+    s.line([3.45, 2.1, 0.3], [3.45 + Math.cos(t) * 0.22, 1.9, 0.3 + Math.sin(t) * 0.22], 0.55, false)
   }
 
-  // A plant by the window.
-  s.box([3.85, 0, -2.75], [4.25, 0.42, -2.35])
+  // A plant by the window, in green pencil.
+  s.box([3.98, 0, -3.1], [4.36, 0.4, -2.72], 'pot')
   const stems: Array<[number, number, number]> = [
-    [0.0, 1.35, 0.0], [-0.22, 1.12, 0.1], [0.24, 1.2, -0.08], [0.1, 0.98, 0.22], [-0.14, 1.28, -0.2],
+    [0.0, 1.35, 0.0], [-0.22, 1.12, 0.1], [0.2, 1.2, -0.08], [0.1, 0.98, 0.22], [-0.14, 1.28, -0.2],
   ]
   for (const [ox, top, oz] of stems) {
-    const base: V3 = [4.05, 0.42, -2.55]
-    const mid: V3 = [4.05 + ox * 0.5, (0.42 + top) / 2, -2.55 + oz * 0.5]
-    const tip: V3 = [4.05 + ox, top, -2.55 + oz]
-    s.path([base, mid, tip], 0.6, false)
-    s.path([[mid[0] - 0.08, mid[1] + 0.1, mid[2]], mid, [mid[0] + 0.07, mid[1] + 0.12, mid[2] + 0.02]], 0.5, false)
-    s.path([[tip[0] - 0.09, tip[1] - 0.05, tip[2]], tip, [tip[0] + 0.08, tip[1] - 0.04, tip[2]]], 0.5, false)
+    const base: V3 = [4.17, 0.4, -2.91]
+    const mid: V3 = [4.17 + ox * 0.5, (0.4 + top) / 2, -2.91 + oz * 0.5]
+    const tip: V3 = [4.17 + ox, top, -2.91 + oz]
+    s.path([base, mid, tip], 0.6, false, LEAF)
+    s.path([[mid[0] - 0.08, mid[1] + 0.1, mid[2]], mid, [mid[0] + 0.07, mid[1] + 0.12, mid[2] + 0.02]], 0.5, false, LEAF)
+    s.path([[tip[0] - 0.09, tip[1] - 0.05, tip[2]], tip, [tip[0] + 0.08, tip[1] - 0.04, tip[2]]], 0.5, false, LEAF)
   }
 
-  return s.build({
-    gallery: new THREE.Vector3(-1.55, 1.15, -1.3),
-    about: new THREE.Vector3(X0 + 0.05, 1.5, -1.98),
-    contact: new THREE.Vector3(3.15, 0.42, -0.25),
-  })
+  // ---- the door leaf, in its own layer around the hinge -------------------
+  const d = new Builder(19)
+  d.box([0, 0, 0], [0.85, 2.1, 0.04], 'door')
+  d.wash([0.12, 0.5, 0.04], [0.22, 1.8, 0.043], 'glass')
+  d.rect([0.12, 0.5, 0.044], [0.22, 0.5, 0.044], [0.22, 1.8, 0.044], [0.12, 1.8, 0.044], 0.75, false)
+  for (const y of [0.3, 1.95]) d.line([0.06, y, 0.042], [0.79, y, 0.042], 0.35, false)
+  d.box([0.72, 0.98, 0.04], [0.78, 1.04, 0.085], 'walnut', 0.85)
+
+  return {
+    main: s.layer(),
+    door: d.layer(),
+    hinge: [0.45, 0, Z0 + 0.006],
+    anchors: {
+      kitchen: new THREE.Vector3(-1.8, 2.25, Z0 + 0.36),
+      gallery: new THREE.Vector3(fx, 1.65, -1.975),
+      about: new THREE.Vector3(1.05, 1.45, Z0 + 0.05),
+      contact: new THREE.Vector3(3.95, 1.55, Z0 + 0.09),
+      // kitchen close-up annotations
+      cabinets: new THREE.Vector3(-2.4, 1.95, Z0 + 0.37),
+      tile: new THREE.Vector3(-0.75, 1.18, Z0 + 0.008),
+      worktop: new THREE.Vector3(-0.75, 0.955, -1.15),
+      fronts: new THREE.Vector3(-2.05, 0.45, -0.845),
+    },
+    zones: {
+      kitchen: { min: [-4.4, 0, Z0], max: [0.22, 2.4, -0.2] },
+      door: { min: [0.38, 0, Z0], max: [1.37, 2.17, Z0 + 0.3] },
+      media: { min: [1.55, 0, Z0], max: [4.4, 2.6, Z0 + 0.55] },
+    },
+  }
 }
 
 /*
- * One "boil" frame: every stroke re-drawn with its own small wobble and an
- * architect's overshoot past the corners. Several frames cycled quickly give
- * the hand-drawn shimmer. Returns flat position and colour arrays for
- * LineSegmentsGeometry (two passes for `double` strokes).
+ * The strokes as flat arrays for LineSegmentsGeometry: one still drawing,
+ * every stroke with a small fixed wobble and an architect's overshoot past
+ * the corners. `double` strokes get a second, lighter pass.
  */
-export function boilFrame(strokes: Stroke[], seed: number) {
+export function inkLines(strokes: Stroke[], seed = 101) {
   const rnd = seeded(seed)
   const pos: number[] = []
   const col: number[] = []
@@ -281,9 +514,9 @@ export function boilFrame(strokes: Stroke[], seed: number) {
   const b = new THREE.Vector3()
   const dir = new THREE.Vector3()
   const ink = new THREE.Color()
-  const wobble = () => (rnd() - 0.5) * 0.022
+  const wobble = () => (rnd() - 0.5) * 0.016
 
-  const push = (tone: number, scale: number) => {
+  const push = (tone: number, scale: number, color?: V3) => {
     const len = a.distanceTo(b)
     dir.subVectors(b, a).normalize()
     const over = Math.min(0.09, 0.02 + len * 0.025) * scale
@@ -297,17 +530,21 @@ export function boilFrame(strokes: Stroke[], seed: number) {
       b.y + dir.y * o2 + wobble(),
       b.z + dir.z * o2 + wobble(),
     )
-    // ink on paper: tone 1 = near-black, tone 0 = paper (sRGB, stored linear)
-    const g = 0.95 - tone * 0.87
-    ink.setRGB(g, g, g * 0.98, THREE.SRGBColorSpace)
+    if (color) {
+      ink.setRGB(color[0], color[1], color[2], THREE.SRGBColorSpace)
+    } else {
+      // warm ink on paper: tone 1 = near-black, tone 0 = paper (sRGB, stored linear)
+      const g = 0.95 - tone * 0.87
+      ink.setRGB(g, g * 0.97, g * 0.92, THREE.SRGBColorSpace)
+    }
     col.push(ink.r, ink.g, ink.b, ink.r, ink.g, ink.b)
   }
 
   for (const s of strokes) {
     a.set(...s.a)
     b.set(...s.b)
-    push(s.tone, 1)
-    if (s.double) push(s.tone * 0.55, 1.6)
+    push(s.tone, 1, s.color)
+    if (s.double) push(s.tone * 0.55, 1.6, s.color)
   }
   return { positions: new Float32Array(pos), colors: new Float32Array(col) }
 }
