@@ -64,7 +64,7 @@ const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, 
 type Pose = { pos: V3; look: V3 }
 const ANGLES: Array<{ id: string; label: string; desk: Pose; phone: Pose }> = [
   { id: 'front', label: 'Front', desk: { pos: [-1.95, 1.85, 2], look: [-1.95, 1.15, -3.3] }, phone: { pos: [-1.95, 1.8, 1.5], look: [-1.95, 1.05, -3.4] } },
-  { id: 'left', label: 'Left side', desk: { pos: [-4.1, 1.6, 0.35], look: [-1.3, 1.0, -2.7] }, phone: { pos: [-4.05, 1.6, 0.9], look: [-1.6, 1.0, -2.6] } },
+  { id: 'left', label: 'Left side', desk: { pos: [-3.4, 1.62, 1.2], look: [-1.4, 1.0, -2.6] }, phone: { pos: [-3.4, 1.62, 1.8], look: [-1.5, 1.0, -2.6] } },
   { id: 'right', label: 'Right side', desk: { pos: [0.95, 1.6, 0.1], look: [-2.3, 1.0, -2.5] }, phone: { pos: [0.9, 1.6, 0.8], look: [-2.2, 1.0, -2.4] } },
   { id: 'above', label: 'From above', desk: { pos: [-1.7, 2.75, 0.6], look: [-1.75, 0.5, -2.2] }, phone: { pos: [-1.75, 2.75, 1.2], look: [-1.75, 0.4, -2.3] } },
   { id: 'detail', label: 'Close up', desk: { pos: [-0.3, 1.35, 0.25], look: [-1.8, 0.95, -1.4] }, phone: { pos: [-0.5, 1.4, 0.6], look: [-1.9, 0.95, -1.4] } },
@@ -353,9 +353,12 @@ function Rig({ live }: { live: MutableRefObject<Live> }) {
       // the chosen angle; the camera's damping glides it from one to the next
       const pose = ANGLES[L.angle] ?? ANGLES[0]
       const { pos, look } = phone ? pose.phone : pose.desk
-      const nudge = phone ? 0.6 : 0.15
+      // a drag (phones) or the mouse nudges the view, the front one most
+      const nudge = phone ? (L.angle === 0 ? 0.6 : 0.3) : 0.15
       const back = phone || L.angle !== 0 ? 0 : Math.max(0, (1.35 - aspect) * 2)
-      v.viewPos.set(pos[0] + x * nudge, pos[1] + y * 0.05, pos[2] + back)
+      // never closer than 0.6 m to a side wall, whatever the nudge
+      const edge = ROOM.w / 2 - 0.6
+      v.viewPos.set(THREE.MathUtils.clamp(pos[0] + x * nudge, -edge, edge), pos[1] + y * 0.05, pos[2] + back)
       v.viewLook.set(look[0] + x * nudge * 0.6, look[1], look[2])
     } else if (L.view === 'gallery') {
       const z = -1.45 - x * (phone ? 0.6 : 0.1)
@@ -421,7 +424,7 @@ function Projector({
     const W = size.width
     const H = size.height
     const L = live.current
-    const maxY = L.t > 0.5 ? H - (L.mobile ? 190 : 120) : H - 76
+    const maxY = L.t > 0.5 ? H - (L.mobile ? 225 : 120) : H - 76
     ITEMS.forEach((it, i) => {
       const dot = dots.current[i]
       const label = labels.current[i]
@@ -430,7 +433,8 @@ function Projector({
       v.copy(model.anchors[it.anchor]).project(camera)
       const ax = ((v.x + 1) / 2) * W
       const ay = ((1 - v.y) / 2) * H
-      const shown = v.z < 1 && ax > 0 && ax < W && ay > 0 && ay < H ? 'visible' : 'hidden'
+      // (in a close-up, anything that would land under the bottom bar stays hidden)
+      const shown = v.z < 1 && ax > 0 && ax < W && ay > 0 && ay < (L.t > 0.5 ? maxY : H) ? 'visible' : 'hidden'
       const w = label.offsetWidth
       const h = label.offsetHeight
       let lx = ax + it.off[0] * W - (it.off[0] < 0 ? w : 0)
