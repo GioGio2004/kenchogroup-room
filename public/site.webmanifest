@@ -1,0 +1,10 @@
+{
+  "name": "The Room by Kencho Group",
+  "short_name": "Kencho Room",
+  "description": "An interactive room by Kencho Group, Tbilisi: design your kitchen in 3D.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f2ec",
+  "theme_color": "#f4f2ec",
+  "icons": [{ "src": "/favicon.ico", "sizes": "any", "type": "image/x-icon" }]
+}

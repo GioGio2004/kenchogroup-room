@@ -5,6 +5,8 @@ import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js'
 import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js'
 import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeometry.js'
 import { gsap, prefersReducedMotion, useGSAP } from '@/lib/motion'
+import { narrator } from '@/lib/narrator'
+import { tracker } from '@/lib/tracker'
 import { PHOTOS } from '@/lib/scene-assets'
 import {
   buildRoom,
@@ -12,6 +14,7 @@ import {
   inkLines,
   KITCHEN_PARTS,
   KITCHEN_THEMES,
+  MONO_THEME,
   PAPER,
   ROOM,
   ROOM_COLORS,
@@ -21,9 +24,11 @@ import {
   type SketchModel,
   type Zone,
 } from '@/scenes/room/sketch'
+import { makeRealMaterials, REAL_COLORS } from '@/scenes/room/real-materials'
+import { RealScene } from '@/scenes/room/RealScene'
 import '@/styles/room.css'
 
-const MAIN = import.meta.env.VITE_MAIN_SITE_URL ?? 'https://kenchogroup.ge'
+const MAIN = import.meta.env.VITE_MAIN_SITE_URL ?? 'https://www.kenchogroup.ge'
 const DRAW_SECONDS = 4.4
 const FINISH_KEY = 'kencho-room-finish'
 const REDIRECT_MS = 3600
@@ -46,6 +51,25 @@ const STOPS: Array<{ zone: Zone; nav: number; yaw: number }> = [
   { zone: 'door', nav: 2, yaw: yawTo(0.875, -3.5) },
   { zone: 'media', nav: 3, yaw: yawTo(2.95, -3.5) },
 ]
+const daypart = () => {
+  const h = new Date().getHours()
+  return h < 5 ? 'night' : h < 11 ? 'morning' : h < 17 ? 'afternoon' : h < 22 ? 'evening' : 'night'
+}
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+/*
+ * The kitchen close-up's camera angles: where the camera stands and what it
+ * looks at, on desktop and on phones (narrower, so a little further back).
+ */
+type Pose = { pos: V3; look: V3 }
+const ANGLES: Array<{ id: string; label: string; desk: Pose; phone: Pose }> = [
+  { id: 'front', label: 'Front', desk: { pos: [-1.95, 1.85, 2], look: [-1.95, 1.15, -3.3] }, phone: { pos: [-1.95, 1.8, 1.5], look: [-1.95, 1.05, -3.4] } },
+  { id: 'left', label: 'Left side', desk: { pos: [-4.1, 1.6, 0.35], look: [-1.3, 1.0, -2.7] }, phone: { pos: [-4.05, 1.6, 0.9], look: [-1.6, 1.0, -2.6] } },
+  { id: 'right', label: 'Right side', desk: { pos: [0.95, 1.6, 0.1], look: [-2.3, 1.0, -2.5] }, phone: { pos: [0.9, 1.6, 0.8], look: [-2.2, 1.0, -2.4] } },
+  { id: 'above', label: 'From above', desk: { pos: [-1.7, 2.75, 0.6], look: [-1.75, 0.5, -2.2] }, phone: { pos: [-1.75, 2.75, 1.2], look: [-1.75, 0.4, -2.3] } },
+  { id: 'detail', label: 'Close up', desk: { pos: [-0.3, 1.35, 0.25], look: [-1.8, 0.95, -1.4] }, phone: { pos: [-0.5, 1.4, 0.6], look: [-1.9, 0.95, -1.4] } },
+]
+
 const isMobile = () => typeof window !== 'undefined' && (window.innerWidth / window.innerHeight < 0.85 || window.innerWidth < 640)
 
 function washMaterial() {
@@ -81,6 +105,8 @@ interface Live {
   /** phones: standing inside the room, the heading between stops */
   mobile: boolean
   yaw: number
+  /** the kitchen close-up's camera angle (index into ANGLES) */
+  angle: number
   hot: Record<Zone, number>
   part: Record<NotePart, number>
   photo: Record<number, number>
@@ -114,11 +140,23 @@ const NOTES: Array<{ key: string; anchor: string; off: [number, number]; part: N
 
 const PHOTO_NAMES = ['Walnut & white island', 'Forest green', 'Warm white', 'Greige & oak']
 
-function storedFinish() {
+/* The menu panel: where each item goes. */
+const MENU_ITEMS: Array<{ n: string; label: string; note: string; view?: View; href?: string }> = [
+  { n: '01', label: 'Design your kitchen', note: 'Finishes and camera angles, changed live', view: 'kitchen' },
+  { n: '02', label: 'The gallery wall', note: 'Four kitchens from our workshop', view: 'gallery' },
+  { n: '03', label: 'The workshop', note: 'Walk through the door to About us', view: 'door' },
+  { n: '04', label: 'Contacts', note: 'Your wall, your idea', href: '/en/contact' },
+]
+
+/* The two rooms: the hand-drawn sketch (the sketchbook path) and the realistic one. */
+export type RoomLook = 'sketch' | 'real'
+const THEMES = { sketch: KITCHEN_THEMES, real: [MONO_THEME, ...KITCHEN_THEMES] }
+
+function storedFinish(look: RoomLook) {
   try {
-    return localStorage.getItem(FINISH_KEY) ?? KITCHEN_THEMES[0].id
+    return localStorage.getItem(`${FINISH_KEY}-${look}`) ?? THEMES[look][0].id
   } catch {
-    return KITCHEN_THEMES[0].id
+    return THEMES[look][0].id
   }
 }
 
@@ -312,13 +350,13 @@ function Rig({ live }: { live: MutableRefObject<Live> }) {
     }
 
     if (L.view === 'kitchen') {
-      if (phone) {
-        v.viewPos.set(-1.95 + x * 0.8, 1.8, 1.5)
-        v.viewLook.set(-1.95 + x * 0.5, 1.05, -3.4)
-      } else {
-        v.viewPos.set(-1.95 + x * 0.15, 1.85 + y * 0.05, 2 + Math.max(0, (1.35 - aspect) * 2))
-        v.viewLook.set(-1.95 + x * 0.08, 1.15, -3.3)
-      }
+      // the chosen angle; the camera's damping glides it from one to the next
+      const pose = ANGLES[L.angle] ?? ANGLES[0]
+      const { pos, look } = phone ? pose.phone : pose.desk
+      const nudge = phone ? 0.6 : 0.15
+      const back = phone || L.angle !== 0 ? 0 : Math.max(0, (1.35 - aspect) * 2)
+      v.viewPos.set(pos[0] + x * nudge, pos[1] + y * 0.05, pos[2] + back)
+      v.viewLook.set(look[0] + x * nudge * 0.6, look[1], look[2])
     } else if (L.view === 'gallery') {
       const z = -1.45 - x * (phone ? 0.6 : 0.1)
       v.viewPos.set(-2.4, 1.62 + y * 0.04, z)
@@ -437,12 +475,13 @@ function Paint({ mats, targets, live, door }: { mats: Mats; targets: Colors; liv
  * Click the kitchen to change its finish, the gallery wall to see our work,
  * the workshop door to walk through to About us.
  */
-export default function Room({ onReplay }: { onReplay: () => void }) {
+export default function Room({ onReplay, sound = true, look = 'sketch' }: { onReplay: () => void; sound?: boolean; look?: RoomLook }) {
   const root = useRef<HTMLElement>(null)
   const door = useRef<THREE.Group>(null)
   const flight = useRef<gsap.core.Timeline | null>(null)
   const stopRef = useRef(1)
-  const model = useMemo(() => buildRoom(), [])
+  const model = useMemo(() => buildRoom({ real: look === 'real' }), [look])
+  const themes = THEMES[look]
   const reduced = useMemo(() => prefersReducedMotion(), [])
   const live = useRef<Live>({
     drawn: 0,
@@ -455,6 +494,7 @@ export default function Room({ onReplay }: { onReplay: () => void }) {
     look: { x: 0, y: 0 },
     mobile: isMobile(),
     yaw: STOPS[1].yaw,
+    angle: 0,
     hot: { kitchen: 0, door: 0, media: 0, gallery: 0 },
     part: { cabinets: 0, fronts: 0, worktop: 0, tile: 0 },
     photo: { 0: 0, 1: 0, 2: 0, 3: 0 },
@@ -465,20 +505,38 @@ export default function Room({ onReplay }: { onReplay: () => void }) {
   const [ready, setReady] = useState(false)
   const [mobile, setMobile] = useState(isMobile)
   const [stop, setStop] = useState(1)
+  const [angle, setAngle] = useState(0)
+  const toAngle = (i: number) => {
+    setAngle(i)
+    live.current.angle = i
+  }
   const [view, setView] = useState<View>('room')
   const [hot, setHot] = useState<Zone | null>(null)
   const [part, setPart] = useState<NotePart | null>(null)
   const [photo, setPhoto] = useState<number | null>(null)
   const [menu, setMenu] = useState(false)
+  // the narrator's room lines follow the intro's sound choice; the menu can mute them
+  const [voice, setVoice] = useState(sound)
+  const returning = tracker.returning
+  // what the visitor has done so far, for the narrator to react to
+  const visits = useRef({ kitchen: 0, gallery: 0, door: 0, finishes: [] as number[], stops: new Set<number>([1]) })
+  const [pointed, setPointed] = useState<number | null>(null)
+  const [, setForgotten] = useState(0)
+  const menuButton = useRef<HTMLButtonElement>(null)
+  const panel = useRef<HTMLElement>(null)
+  const panelClose = useRef<HTMLButtonElement>(null)
+  const indicator = useRef<HTMLSpanElement>(null)
+  const items = useRef<Array<HTMLElement | null>>([])
   const [arrived, setArrived] = useState(false)
-  const [themeId, setThemeId] = useState(storedFinish)
+  const [themeId, setThemeId] = useState(() => storedFinish(look))
   const [preview, setPreview] = useState<string | null>(null)
-  const theme = KITCHEN_THEMES.find((t) => t.id === themeId) ?? KITCHEN_THEMES[0]
-  const shown = KITCHEN_THEMES.find((t) => t.id === preview) ?? theme
+  const theme = themes.find((t) => t.id === themeId) ?? themes[0]
+  const shown = themes.find((t) => t.id === preview) ?? theme
   const touch = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
   const mode = !ready ? 'off' : view
   const here = NAV[STOPS[stop].nav]
 
+  const [realMats] = useState(() => (look === 'real' ? makeRealMaterials() : null))
   const [mats] = useState<Mats>(() => {
     const m = {} as Mats
     for (const key of FILL_KEYS) m[key] = washMaterial()
@@ -486,7 +544,7 @@ export default function Room({ onReplay }: { onReplay: () => void }) {
   })
   const [targets] = useState<Colors>(() => {
     const c = {} as Colors
-    for (const [key, hex] of Object.entries(ROOM_COLORS) as Array<[FillKey, string]>) c[key] = new THREE.Color(hex)
+    for (const [key, hex] of Object.entries(look === 'real' ? REAL_COLORS : ROOM_COLORS) as Array<[FillKey, string]>) c[key] = new THREE.Color(hex)
     for (const p of KITCHEN_PARTS) c[p] = new THREE.Color(theme.colors[p])
     return c
   })
@@ -515,7 +573,7 @@ export default function Room({ onReplay }: { onReplay: () => void }) {
         .fromTo(root.current, { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.1, ease: 'expo.inOut', clearProps: 'clipPath' })
         .to(L, { drawn: 1, duration: DRAW_SECONDS, ease: 'power1.inOut', onComplete: () => setReady(true) }, 0.5)
         .to(L, { arrive: 1, duration: DRAW_SECONDS + 0.6, ease: 'power2.inOut' }, 0.5)
-        .to(L, { wash: 1, duration: 1.8, ease: 'power2.out' }, 0.5 + DRAW_SECONDS * 0.6)
+        .to(L, look === 'real' ? { wash: 1, duration: 3.4, ease: 'power2.inOut' } : { wash: 1, duration: 1.8, ease: 'power2.out' }, look === 'real' ? 0.4 : 0.5 + DRAW_SECONDS * 0.6)
         .from('.room-chrome', { opacity: 0, y: -10, duration: 0.8, ease: 'power3.out', stagger: 0.08 }, DRAW_SECONDS - 0.4)
     },
     { scope: root },
@@ -539,11 +597,11 @@ export default function Room({ onReplay }: { onReplay: () => void }) {
       gsap.to(targets[p], { r: c.r, g: c.g, b: c.b, duration: reduced ? 0 : 0.9, delay: reduced ? 0 : i * 0.07, ease: 'power2.inOut', overwrite: true })
     })
     try {
-      localStorage.setItem(FINISH_KEY, theme.id)
+      localStorage.setItem(`${FINISH_KEY}-${look}`, theme.id)
     } catch {
       // private mode: the finish just isn't remembered
     }
-  }, [theme, targets, reduced])
+  }, [theme, targets, reduced, look])
 
   // Hover: the zone lifts, its callout answers, the door eases ajar, the TV wakes.
   useEffect(() => {
@@ -562,17 +620,109 @@ export default function Room({ onReplay }: { onReplay: () => void }) {
     if (root.current) root.current.style.cursor = hot || photo !== null ? 'pointer' : ''
   }, [hot, photo])
 
-  // After the walk through the door: a moment in the workshop, then About us.
+  // After the walk through the door: a moment in the workshop (and the end
+  // of the narrator's line), then About us.
   useEffect(() => {
     if (!arrived) return
-    const id = window.setTimeout(() => go('/en/about'), REDIRECT_MS)
+    const id = window.setTimeout(() => void narrator.whenQuiet(4000).then(() => go('/en/about')), REDIRECT_MS)
     return () => window.clearTimeout(id)
   }, [arrived])
+
+  // ---- the narrator -----------------------------------------------------
+  // Muted (the intro's choice, or the menu switch) means no line plays.
+  useEffect(() => {
+    narrator.setMuted(!voice)
+    tracker.set({ voice })
+  }, [voice])
+
+  // Arriving: a welcome (or a welcome back), and the likely next lines loaded.
+  useEffect(() => {
+    if (!ready) return
+    void narrator.prime(['kitchen-first', 'gallery-first', 'door-walk', 'contacts-click'])
+    const id = window.setTimeout(() => {
+      const line = returning ? (Math.random() < 0.5 ? 'arrive-return' : `arrive-${daypart()}`) : 'arrive-first'
+      void narrator.say(line, { priority: 1 })
+    }, 1200)
+    return () => window.clearTimeout(id)
+  }, [ready, returning])
+
+  // Unprompted lines: idle nudges, time on the site, coming back to the tab.
+  // They wait for 10 s of quiet and never talk over a camera move.
+  useEffect(() => {
+    if (!ready) return
+    const L = live.current
+    const began = performance.now()
+    let active = began
+    let hiddenAt = 0
+    const poke = () => {
+      active = performance.now()
+    }
+    const calm = () => narrator.quietFor() > 10000 && !flight.current?.isActive() && L.view !== 'door'
+    const tick = window.setInterval(() => {
+      if (!document.hidden) tracker.addTime(2000)
+      if (document.hidden || !calm()) return
+      const now = performance.now()
+      const idle = now - active
+      const stay = now - began
+      if (idle > 60000 && narrator.hasSaid('idle-20s')) void narrator.say('idle-60s', { priority: 1 })
+      else if (idle > 20000) void narrator.say('idle-20s', { priority: 1 })
+      else if (stay > 60000) void narrator.say(stay > 300000 ? 'time-5min' : stay > 180000 ? 'time-3min' : 'time-1min', { priority: 1 })
+    }, 2000)
+    const seen = () => {
+      if (document.hidden) {
+        hiddenAt = performance.now()
+        return
+      }
+      if (hiddenAt && performance.now() - hiddenAt > 30000) {
+        window.setTimeout(() => {
+          if (narrator.quietFor() > 3000) void narrator.say('tab-return', { priority: 1 })
+        }, 800)
+      }
+      hiddenAt = 0
+      poke()
+    }
+    const events = ['pointerdown', 'keydown', 'wheel'] as const
+    events.forEach((ev) => window.addEventListener(ev, poke, { passive: true }))
+    document.addEventListener('visibilitychange', seen)
+    return () => {
+      window.clearInterval(tick)
+      events.forEach((ev) => window.removeEventListener(ev, poke))
+      document.removeEventListener('visibilitychange', seen)
+    }
+  }, [ready])
+
+  // Hover lines (desktop): the door eases ajar with a creak, the TV wakes,
+  // the first material, the first photo. Quiet lines: they never cut in.
+  useEffect(() => {
+    if (touch) return
+    if (hot === 'door') void narrator.say('door-hover', { priority: 2 })
+    if (hot === 'media') void narrator.say('tv-hover', { priority: 2 })
+  }, [hot, touch])
+  useEffect(() => {
+    if (part) void narrator.say('kitchen-materials', { priority: 2 })
+  }, [part])
+  useEffect(() => {
+    if (photo !== null) void narrator.say('gallery-hover', { priority: 2 })
+  }, [photo])
+
+  // A long look at the kitchen: a gentle nudge toward building it.
+  useEffect(() => {
+    if (view !== 'kitchen') return
+    const id = window.setTimeout(() => {
+      if (narrator.quietFor() > 5000) void narrator.say('kitchen-linger', { priority: 1 })
+    }, 45000)
+    return () => window.clearTimeout(id)
+  }, [view])
 
   /* Phones: turn to a stop. */
   const toStop = useCallback(
     (i: number) => {
       const n = Math.max(0, Math.min(STOPS.length - 1, i))
+      if (n !== stopRef.current) {
+        const seen = visits.current.stops
+        seen.add(n)
+        void narrator.say(seen.size === STOPS.length ? 'swipe-all' : 'swipe-first', { priority: 2 })
+      }
       stopRef.current = n
       setStop(n)
       gsap.to(live.current, { yaw: STOPS[n].yaw, duration: reduced ? 0.01 : 0.8, ease: 'power3.out', overwrite: 'auto' })
@@ -633,6 +783,20 @@ export default function Room({ onReplay }: { onReplay: () => void }) {
 
   const go = (href: string) => window.location.assign(`${MAIN}${href}`)
 
+  /* Leave for the main site once the narrator's line ends (at most `cap` ms). */
+  const leave = (url: string, line: Promise<void> = Promise.resolve(), cap = 2800) => {
+    tracker.count('links', url.replace(MAIN, '') || '/')
+    void Promise.all([wait(reduced ? 0 : 450), Promise.race([line, wait(cap)])]).then(() => window.location.assign(url))
+  }
+  // Links out play their line first; modified clicks (new tab) stay plain links.
+  const linkOut = (lineId: string) => (e: MouseEvent) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
+    const url = e.currentTarget.getAttribute('href')
+    if (!url) return
+    e.preventDefault()
+    leave(url, narrator.say(lineId, { priority: 3 }))
+  }
+
   /* Fly between the room and a close-up (leaving the current one first). */
   const fly = (next: View) => {
     const L = live.current
@@ -641,6 +805,7 @@ export default function Room({ onReplay }: { onReplay: () => void }) {
     setPart(null)
     setPhoto(null)
     setMenu(false)
+    setPointed(null)
     setArrived(false)
     setPreview(null)
     // phones push in quicker and snappier; desktop takes the long glide
@@ -663,11 +828,44 @@ export default function Room({ onReplay }: { onReplay: () => void }) {
       tl.to(L, { t: 1, duration: d, ease })
       if (next === 'door') {
         tl.to(L, { door: 1, duration: reduced ? 0.2 : 0.9, ease: 'power2.inOut' }, '-=0.3')
+          .call(() => void narrator.sfx('door-creak'), [], '<')
           .to(L, { walk: 1, duration: reduced ? 0.3 : L.mobile ? 1.7 : 2.1, ease: 'power2.inOut' }, '-=0.35')
           .call(() => setArrived(true), [], reduced ? undefined : '-=0.5')
       }
     }
     setView(next)
+    if (next !== 'room') tracker.count('views', next)
+
+    // The narrator answers: first visit, second, then once more.
+    const v = visits.current
+    if (next === 'kitchen') {
+      toAngle(0)
+      const n = ++v.kitchen
+      void narrator.say(n === 1 ? 'kitchen-first' : n === 2 ? 'kitchen-second' : 'kitchen-again', { priority: 3 })
+    } else if (next === 'gallery') {
+      void narrator.say(++v.gallery === 1 ? 'gallery-first' : 'gallery-again', { priority: 3 })
+    } else if (next === 'door') {
+      void narrator.say(++v.door === 1 ? 'door-walk' : 'door-again', { priority: 3 })
+    }
+  }
+
+  /* "Stay in the room": back out of the workshop. */
+  const stay = () => {
+    fly('room')
+    void narrator.say('door-stay', { priority: 3 })
+  }
+
+  /* A new finish: the first one, the one picked, or a gentle "can't decide?". */
+  const chooseFinish = (id: string) => {
+    if (id === themeId) return
+    setThemeId(id)
+    tracker.count('finishes', id)
+    tracker.set({ lastFinish: id })
+    const now = performance.now()
+    const recent = (visits.current.finishes = [...visits.current.finishes.filter((t) => now - t < 8000), now])
+    if (!narrator.hasSaid('finish-first')) void narrator.say('finish-first', { priority: 2 })
+    else if (recent.length >= 4) void narrator.say('kitchen-indecisive', { priority: 2 })
+    else void narrator.say(`finish-${id}`, { priority: 2 })
   }
 
   const pick = (z: Zone) => {
@@ -675,25 +873,57 @@ export default function Room({ onReplay }: { onReplay: () => void }) {
     if (z === 'gallery') return fly('gallery')
     if (z === 'door') return fly('door')
     setHot('media')
-    gsap.delayedCall(reduced ? 0 : 0.45, () => go('/en/contact'))
+    leave(`${MAIN}/en/contact`, narrator.say('contacts-click', { priority: 3 }))
   }
 
   const onHot = (z: Zone, on: boolean) => setHot((h) => (on ? z : h === z ? null : h))
   const onPart = (p: NotePart, on: boolean) => setPart((h) => (on ? p : h === p ? null : h))
   // touch has no hover: a tap shows (or hides) that part's material
   const tapPart = (p: NotePart) => touch && setPart((h) => (h === p ? null : p))
-  const onPhoto = (i: number, on: boolean) => setPhoto((h) => (on ? i : h === i ? null : h))
+  const onPhoto = (i: number, on: boolean) => {
+    if (on) tracker.count('photos', PHOTO_NAMES[i])
+    setPhoto((h) => (on ? i : h === i ? null : h))
+  }
 
   // Escape steps back out: the menu, then any close-up.
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key !== 'Escape') return
-      if (menu) setMenu(false)
+      if (menu) closeMenu()
       else if (view !== 'room') fly('room')
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   })
+
+  /* The menu's indicator glides to the item being pointed at (or to where you are). */
+  const menuAt = MENU_ITEMS.findIndex((m) => m.view === view)
+  const point = (i: number | null) => {
+    setPointed(i)
+    const bar = indicator.current
+    const el = i === null || i < 0 ? null : items.current[i]
+    if (!bar) return
+    if (!el) {
+      gsap.to(bar, { opacity: 0, duration: 0.3, overwrite: 'auto' })
+      return
+    }
+    gsap.to(bar, { y: el.offsetTop, scaleY: el.offsetHeight, opacity: 1, duration: reduced ? 0 : 0.55, ease: 'power3.out', overwrite: 'auto' })
+  }
+
+  // Opening the menu: focus moves in and the indicator finds where you are.
+  const openMenu = () => {
+    setMenu(true)
+    requestAnimationFrame(() => {
+      panelClose.current?.focus({ preventScroll: true })
+      point(menuAt >= 0 ? menuAt : null)
+    })
+  }
+  // Closing it: focus goes back to the Menu button.
+  const closeMenu = () => {
+    setMenu(false)
+    setPointed(null)
+    if (panel.current?.contains(document.activeElement)) menuButton.current?.focus({ preventScroll: true })
+  }
 
   // Plain clicks on Contacts wake the TV first; modified clicks stay links.
   const onNavClick = (t: NavItem) => (e: MouseEvent) => {
@@ -706,9 +936,9 @@ export default function Room({ onReplay }: { onReplay: () => void }) {
     const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
     if (!step) return
     e.preventDefault()
-    const n = KITCHEN_THEMES.length
-    const i = (KITCHEN_THEMES.findIndex((t) => t.id === theme.id) + step + n) % n
-    setThemeId(KITCHEN_THEMES[i].id)
+    const n = themes.length
+    const i = (themes.findIndex((t) => t.id === theme.id) + step + n) % n
+    chooseFinish(themes[i].id)
     e.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')[i]?.focus()
   }
 
@@ -724,23 +954,36 @@ export default function Room({ onReplay }: { onReplay: () => void }) {
         : 'Click the kitchen to design it'
 
   return (
-    <section ref={root} className="room" data-view={view} data-mobile={mobile || undefined} aria-label="The room">
+    <section ref={root} className="room" data-look={look} data-view={view} data-mobile={mobile || undefined} aria-label="The room">
       <Canvas
         className="room-canvas"
-        dpr={[1, 2]}
+        dpr={look === 'real' ? [1, 1.75] : [1, 2]}
         camera={{ position: [0.3, 2.4, 9], fov: 44, near: 0.1, far: 60 }}
-        flat
+        flat={look === 'sketch'}
+        shadows={look === 'real' ? 'soft' : undefined}
         gl={{ antialias: true, alpha: true }}
         onPointerMissed={() => setPart(null)}
       >
-        <InkLayer layer={model.main} mats={mats} live={live} />
-        <group ref={door} position={model.hinge}>
-          <InkLayer layer={model.door} mats={mats} live={live} from={0.5} to={0.75} />
-        </group>
+        {realMats ? (
+          <RealScene main={model.main} leaf={model.door} hinge={model.hinge} mats={realMats} targets={targets} live={live} door={door} />
+        ) : (
+          <>
+            <InkLayer layer={model.main} mats={mats} live={live} />
+            <group ref={door} position={model.hinge}>
+              <InkLayer layer={model.door} mats={mats} live={live} from={0.5} to={0.75} />
+            </group>
+            <Paint mats={mats} targets={targets} live={live} door={door} />
+          </>
+        )}
         <Suspense fallback={null}>
-          <Photos model={model} live={live} enabled={view === 'gallery'} onHot={onPhoto} onPick={() => go('/en/gallery')} />
+          <Photos
+            model={model}
+            live={live}
+            enabled={view === 'gallery'}
+            onHot={onPhoto}
+            onPick={() => leave(`${MAIN}/en/gallery`, narrator.say('gallery-leave', { priority: 3 }))}
+          />
         </Suspense>
-        <Paint mats={mats} targets={targets} live={live} door={door} />
         <HitBoxes boxes={zoneBoxes} enabled={ready && view === 'room' && !menu} onHot={onHot} onPick={pick} />
         <HitBoxes boxes={partBoxes} enabled={view === 'kitchen'} onHot={onPart} onPick={tapPart} />
         <Rig live={live} />
@@ -831,6 +1074,7 @@ export default function Room({ onReplay }: { onReplay: () => void }) {
             data-set="photo"
             data-hot={photo === j || undefined}
             href={`${MAIN}/en/gallery`}
+            onClick={linkOut('gallery-leave')}
             tabIndex={view === 'gallery' ? 0 : -1}
             ref={(el) => {
               labels.current[NAV.length + NOTES.length + j] = el
@@ -870,6 +1114,20 @@ export default function Room({ onReplay }: { onReplay: () => void }) {
         <p className="stops-hint">Swipe to look around the room</p>
       </div>
 
+      {/* The kitchen close-up's camera angles. */}
+      <nav className="room-angles" data-on={view === 'kitchen' || undefined} inert={view !== 'kitchen'} aria-label="Camera angle">
+        <p className="angles-title">View</p>
+        {ANGLES.map((a, i) => (
+          <button key={a.id} type="button" className="angles-item" aria-pressed={angle === i} onClick={() => {
+              toAngle(i)
+              tracker.count('angles', a.id)
+            }}>
+            <span>{String(i + 1).padStart(2, '0')}</span>
+            {a.label}
+          </button>
+        ))}
+      </nav>
+
       {/* The kitchen close-up: a transparent finish bar along the bottom. */}
       <div className="room-bar" data-on={view === 'kitchen' || undefined} inert={view !== 'kitchen'}>
         <button type="button" className="room-link" onClick={() => fly('room')}>
@@ -881,7 +1139,7 @@ export default function Room({ onReplay }: { onReplay: () => void }) {
             <span>{shown.note}</span>
           </p>
           <div className="finish-swatches" role="radiogroup" aria-label="Kitchen finish" onKeyDown={onFinishKey}>
-            {KITCHEN_THEMES.map((t) => (
+            {themes.map((t) => (
               <button
                 key={t.id}
                 type="button"
@@ -895,12 +1153,12 @@ export default function Room({ onReplay }: { onReplay: () => void }) {
                 onPointerLeave={() => setPreview(null)}
                 onFocus={() => setPreview(t.id)}
                 onBlur={() => setPreview(null)}
-                onClick={() => setThemeId(t.id)}
+                onClick={() => chooseFinish(t.id)}
               />
             ))}
           </div>
         </div>
-        <a className="room-link" href={`${MAIN}/en/contact`}>
+        <a className="room-link" href={`${MAIN}/en/contact`} onClick={linkOut('contacts-click')}>
           Build this kitchen <Arrow />
         </a>
       </div>
@@ -914,7 +1172,7 @@ export default function Room({ onReplay }: { onReplay: () => void }) {
           <b>The gallery wall</b>
           <span>Four kitchens from our workshop in Tbilisi.</span>
         </p>
-        <a className="room-link" href={`${MAIN}/en/gallery`}>
+        <a className="room-link" href={`${MAIN}/en/gallery`} onClick={linkOut('gallery-leave')}>
           Full gallery <Arrow />
         </a>
       </div>
@@ -931,7 +1189,7 @@ export default function Room({ onReplay }: { onReplay: () => void }) {
           <a className="room-link" href={`${MAIN}/en/about`}>
             Go now <Arrow />
           </a>
-          <button type="button" className="room-link" onClick={() => fly('room')}>
+          <button type="button" className="room-link" onClick={stay}>
             Stay in the room
           </button>
         </div>
@@ -945,40 +1203,101 @@ export default function Room({ onReplay }: { onReplay: () => void }) {
           <span className="room-wordmark-sub">GROUP</span>
         </a>
         <div className="room-actions room-chrome">
-          <a className="room-link room-link-gallery" href={`${MAIN}/en/gallery`}>
+          <a className="room-link room-link-gallery" href={`${MAIN}/en/gallery`} onClick={linkOut('gallery-leave')}>
             Gallery <Arrow />
           </a>
-          <button type="button" className="room-link" aria-expanded={menu} aria-controls="room-menu" onClick={() => setMenu((m) => !m)}>
-            {menu ? 'Close' : 'Menu'}
+          <button ref={menuButton} type="button" className="room-link" aria-expanded={menu} aria-controls="room-menu" onClick={openMenu}>
+            Menu
           </button>
-          <nav id="room-menu" className="room-menu" data-on={menu || undefined} inert={!menu} aria-label="Kencho Group">
-            <button type="button" onClick={() => fly('kitchen')}>
-              <span>01</span>Design your kitchen
+        </div>
+      </header>
+
+      {/* The menu: half the screen in one flat colour, terracotta in the sketch room, white in the realistic one. */}
+      <div className="room-scrim" data-on={menu || undefined} onClick={closeMenu} aria-hidden="true" />
+      <aside id="room-menu" ref={panel} className="room-panel" data-on={menu || undefined} inert={!menu} aria-label="Menu">
+        <div className="panel-top">
+          <p className="panel-kicker">Menu</p>
+          <button ref={panelClose} type="button" className="panel-close" onClick={closeMenu}>
+            Close <span className="panel-x" aria-hidden="true" />
+          </button>
+        </div>
+        <nav className="panel-nav" aria-label="In the room" onPointerLeave={() => point(menuAt >= 0 ? menuAt : null)}>
+          <span ref={indicator} className="panel-indicator" aria-hidden="true" />
+          {MENU_ITEMS.map((m, i) => {
+            const inner = (
+              <>
+                <span className="panel-n">{m.n}</span>
+                <span className="panel-label">
+                  {m.label}
+                  {m.href && <Arrow />}
+                </span>
+                <span className="panel-note">{m.note}</span>
+              </>
+            )
+            const props = {
+              className: 'panel-item',
+              style: { '--i': i } as CSSProperties,
+              'data-current': (m.view !== undefined && m.view === view) || undefined,
+              'data-pointed': pointed === i || undefined,
+              ref: (el: HTMLElement | null) => {
+                items.current[i] = el
+              },
+              onPointerEnter: () => point(i),
+              onFocus: () => point(i),
+            }
+            return m.href ? (
+              <a key={m.n} {...props} href={`${MAIN}${m.href}`} onClick={linkOut('contacts-click')}>
+                {inner}
+              </a>
+            ) : (
+              <button key={m.n} type="button" {...props} onClick={() => m.view && fly(m.view)}>
+                {inner}
+              </button>
+            )
+          })}
+        </nav>
+        <div className="panel-foot">
+          <div className="panel-extras">
+            <button type="button" className="panel-switch" role="switch" aria-checked={voice} onClick={() => setVoice((v) => !v)}>
+              <span>Narrator&apos;s voice</span>
+              <i aria-hidden="true" />
             </button>
-            <button type="button" onClick={() => fly('gallery')}>
-              <span>02</span>The gallery wall
-            </button>
-            <button type="button" onClick={() => fly('door')}>
-              <span>03</span>The workshop
-            </button>
-            <a href={`${MAIN}/en/contact`}>
-              <span>04</span>Contacts <Arrow />
-            </a>
             <button
               type="button"
+              className="panel-extra"
               onClick={() => {
-                setMenu(false)
+                closeMenu()
+                void narrator.say('replay-intro', { priority: 3 })
                 onReplay()
               }}
             >
-              <span>—</span>Replay intro
+              Replay intro
             </button>
-            <a href={MAIN}>
-              <span>—</span>kenchogroup.ge <Arrow />
+            <a className="panel-extra" href={MAIN}>
+              kenchogroup.ge <Arrow />
             </a>
-          </nav>
+          </div>
+          {/* What this browser remembers (kept on this device only), and a way to forget it. */}
+          <p className="panel-memory">
+            {(() => {
+              const t = tracker.get()
+              const minutes = Math.max(1, Math.round(t.timeSpent / 60000))
+              const finish = t.lastFinish ? themes.find((x) => x.id === t.lastFinish)?.name : null
+              return `Remembered on this device: visit ${t.visits}, ${minutes} min here${finish ? `, ${finish}` : ''}.`
+            })()}{' '}
+            <button
+              type="button"
+              className="panel-forget"
+              onClick={() => {
+                tracker.forget()
+                setForgotten((n) => n + 1)
+              }}
+            >
+              Forget me
+            </button>
+          </p>
         </div>
-      </header>
+      </aside>
 
       <p className="room-hint room-chrome" data-hidden={view === 'door' || (mobile && view === 'room') || undefined}>
         <span aria-hidden="true" />

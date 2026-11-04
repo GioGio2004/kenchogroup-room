@@ -3,6 +3,7 @@ import { gsap, prefersReducedMotion, useGSAP } from '@/lib/motion'
 import { CARDS, type Card, type Chunk } from '@/lib/kinetic-script'
 import { line, LINES, NARRATION } from '@/lib/narration'
 import { PHOTOS } from '@/lib/scene-assets'
+import type { Origin } from '@/scenes/opening/Intro'
 
 /* Words land on the voice: chunks start this much before their word. */
 const LEAD = 0.08
@@ -35,8 +36,8 @@ const HA_SLOTS = [
 interface KineticProps {
   audio: RefObject<HTMLAudioElement | null>
   sound: boolean
-  /** radius (px) of the Start button the scene grows out of */
-  revealFrom: number
+  /** the Start button the scene grows out of */
+  origin: Origin
   /** preloaded blob URLs by asset path */
   urls: Record<string, string>
   /** the opening is over (played out or skipped): on to the room */
@@ -49,7 +50,7 @@ interface KineticProps {
  * One master timeline in narration seconds: the audio clock drives it while
  * the voice plays, its own clock otherwise.
  */
-export default function Kinetic({ audio, sound: startWithSound, revealFrom, urls, onFinish }: KineticProps) {
+export default function Kinetic({ audio, sound: startWithSound, origin, urls, onFinish }: KineticProps) {
   const u = (src: string) => urls[src] ?? src
   const root = useRef<HTMLElement>(null)
   const tl = useRef<gsap.core.Timeline | null>(null)
@@ -66,8 +67,8 @@ export default function Kinetic({ audio, sound: startWithSound, revealFrom, urls
     () => {
       gsap.fromTo(
         root.current,
-        { clipPath: `circle(${revealFrom}px at 50% 50%)` },
-        { clipPath: 'circle(150% at 50% 50%)', duration: 0.75, ease: 'expo.inOut', clearProps: 'clipPath' },
+        { clipPath: `circle(${origin.r}px at ${origin.x}px ${origin.y}px)` },
+        { clipPath: `circle(150% at ${origin.x}px ${origin.y}px)`, duration: 0.75, ease: 'expo.inOut', clearProps: 'clipPath' },
       )
     },
     { scope: root },
@@ -394,7 +395,6 @@ export default function Kinetic({ audio, sound: startWithSound, revealFrom, urls
           data-card={i}
           className="k-card"
           data-bg={card.bg}
-          data-grid={card.grid || undefined}
           aria-hidden="true"
         >
           {card.photo?.mode === 'behind' && (

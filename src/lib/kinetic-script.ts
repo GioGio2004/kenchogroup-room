@@ -57,8 +57,6 @@ export interface Card {
   ha?: [number, number]
   /** a big X slashes across at this time */
   slash?: number
-  /** dotted grid + vignette */
-  grid?: boolean
   /** how the card leaves */
   exit?: 'blur' | 'zoom' | 'cut'
 }
@@ -119,7 +117,6 @@ export const CARDS: Card[] = [
   // "A kitchen?" — a photo card, a cursor, a click
   {
     bg: 'dark',
-    grid: true,
     cursor: true,
     photo: { mode: 'card', keys: ['shelves'] },
     chunks: [c('perhaps', 0, 1, 'xl', 'slam')],
@@ -146,7 +143,7 @@ export const CARDS: Card[] = [
   // "Don't worry." — calm
   { bg: 'light', chunks: [c('plenty', 6, 7, 'lg', 'focus')] },
   // "All right, all right…" typed
-  { bg: 'dark', grid: true, chunks: [c('space', 0, 1, 'lg', 'type'), c('space', 2, 3, 'lg', 'type')] },
+  { bg: 'dark', chunks: [c('space', 0, 1, 'lg', 'type'), c('space', 2, 3, 'lg', 'type')] },
   // "I'll give you some SPACE." — the letters drift apart
   { bg: 'light', chunks: [c('space', 4, 7, 'md', 'rise'), c('space', 8, 8, 'xl', 'scatter')] },
   // "Have a look AROUND." over a sliding film strip
@@ -156,5 +153,5 @@ export const CARDS: Card[] = [
     chunks: [c('home', 0, 2, 'md', 'smear'), c('home', 3, 3, 'xl', 'slam')],
   },
   // "See what feels like HOME."
-  { bg: 'dark', grid: true, chunks: [c('home', 4, 7, 'md', 'rise'), c('home', 8, 8, 'xxl', 'slam')] },
+  { bg: 'dark', chunks: [c('home', 4, 7, 'md', 'rise'), c('home', 8, 8, 'xxl', 'slam')] },
 ]

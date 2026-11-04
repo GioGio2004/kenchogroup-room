@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { PhotoKey } from '@/lib/scene-assets'
 
@@ -26,6 +27,11 @@ export type RoomKey =
   | 'peg'
   | 'stool'
   | 'ceiling'
+  | 'metal'
+  | 'leaf'
+  | 'bulb'
+  | 'groove'
+  | 'fruit'
   | 'plinth'
   | 'appliance'
   | 'steel'
@@ -59,6 +65,12 @@ export const ROOM_COLORS: Record<RoomKey, string> = {
   peg: '#9a7d60',
   stool: '#d8d2c7',
   ceiling: '#f2eee6',
+  // parts only the realistic room builds
+  metal: '#2b2a27',
+  leaf: '#5b7a4f',
+  bulb: '#fff4dc',
+  groove: '#1f1c18',
+  fruit: '#d9772e',
   plinth: '#9c8670',
   appliance: '#2b2a27',
   steel: '#c5c8c3',
@@ -83,6 +95,15 @@ export interface KitchenTheme {
   colors: Record<KitchenPart, string>
   /** what each finish is, for the board and the annotations */
   names: Record<NotePart, string>
+}
+
+/* The realistic room's own finish (and its default): clean beige white and black. */
+export const MONO_THEME: KitchenTheme = {
+  id: 'mono',
+  name: 'Beige white & black',
+  note: 'Beige-white matte lacquer under black quartz.',
+  colors: { cabinets: '#e6ded1', fronts: '#e6ded1', worktop: '#141312', tile: '#f0ebe3', shelf: '#c79f72' },
+  names: { cabinets: 'Beige-white matte lacquer', fronts: 'Beige-white matte lacquer', worktop: 'Black quartz', tile: 'Gloss white tile' },
 }
 
 export const KITCHEN_THEMES: KitchenTheme[] = [
@@ -181,13 +202,20 @@ function faceShade(x: number, y: number, z: number) {
   return z > 0 ? 0.9 : 0.8
 }
 
+/*
+ * Builds both rooms from one plan. The sketch is ink over washes; with
+ * `real` on, the same boxes get softly bevelled edges, and the parts the
+ * sketch only draws (legs, rails, lamps, door gaps, slats) become geometry.
+ */
 class Builder {
   strokes: Stroke[] = []
   private fills: Partial<Record<FillKey, THREE.BufferGeometry[]>> = {}
   private rnd: () => number
+  readonly real: boolean
 
-  constructor(seed = 7) {
+  constructor(seed = 7, real = false) {
     this.rnd = seeded(seed)
+    this.real = real
   }
 
   line(a: V3, b: V3, tone = 0.9, double = true, color?: V3) {
@@ -205,9 +233,44 @@ class Builder {
   }
 
   private fill(min: V3, max: V3, key: FillKey, shade?: number) {
-    const g = new THREE.BoxGeometry(max[0] - min[0], max[1] - min[1], max[2] - min[2])
+    const [w, h, d] = [max[0] - min[0], max[1] - min[1], max[2] - min[2]]
+    const thin = Math.min(w, h, d)
+    // real furniture catches the light on softly rounded edges; washes stay flat
+    const g =
+      this.real && shade === undefined && thin >= 0.02
+        ? new RoundedBoxGeometry(w, h, d, 2, Math.min(0.01, thin * 0.25))
+        : new THREE.BoxGeometry(w, h, d)
     g.translate((min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2)
     this.add(g, key, shade)
+  }
+
+  /** realistic room only: a bevelled box with no ink */
+  block(min: V3, max: V3, key: FillKey, flat = false) {
+    if (this.real) this.fill(min, max, key, flat ? 1 : undefined)
+  }
+
+  /** realistic room only: a rod (a leg, a rail, a cord) of radius r from a to b */
+  rod(a: V3, b: V3, r: number, key: FillKey) {
+    if (!this.real) return
+    const A = new THREE.Vector3(...a)
+    const B = new THREE.Vector3(...b)
+    const len = A.distanceTo(B)
+    if (len < 1e-4) return
+    const g = new THREE.CylinderGeometry(r, r, len, 12)
+    g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), B.clone().sub(A).normalize()))
+    g.translate((A.x + B.x) / 2, (A.y + B.y) / 2, (A.z + B.z) / 2)
+    this.add(g, key)
+  }
+
+  /** realistic room only: a bent rod through points, with rounded joints */
+  rods(points: V3[], r: number, key: FillKey) {
+    for (let i = 0; i < points.length - 1; i++) this.rod(points[i], points[i + 1], r, key)
+    for (const pt of points.slice(1, -1)) this.solid(new THREE.SphereGeometry(r, 10, 8).translate(...pt), key)
+  }
+
+  /** realistic room only: any shaped part */
+  solid(g: THREE.BufferGeometry, key: FillKey) {
+    if (this.real) this.add(g, key)
   }
 
   private add(geometry: THREE.BufferGeometry, key: FillKey, shade?: number) {
@@ -239,6 +302,15 @@ class Builder {
   /** vertical divisions across a box's front face (z = zf), e.g. door joints */
   doors(x0: number, x1: number, y0: number, y1: number, zf: number, count: number, tone = 0.7) {
     const step = (x1 - x0) / count
+    if (this.real) {
+      // shadow gaps between the doors, and a slim black pull on each
+      for (let i = 1; i < count; i++) this.fill([x0 + step * i - 0.003, y0, zf], [x0 + step * i + 0.003, y1, zf + 0.002], 'groove', 1)
+      for (let i = 0; i < count; i++) {
+        const cx = x0 + step * (i + 0.5) + (i % 2 ? -step * 0.32 : step * 0.32)
+        const top = y1 - Math.min(0.1, (y1 - y0) * 0.16)
+        this.fill([cx - 0.007, top - Math.min(0.18, (y1 - y0) * 0.4), zf], [cx + 0.007, top, zf + 0.022], 'metal')
+      }
+    }
     for (let i = 1; i < count; i++) this.line([x0 + step * i, y0, zf], [x0 + step * i, y1, zf], tone, false)
     // a small pull on each door
     for (let i = 0; i < count; i++) {
@@ -298,8 +370,8 @@ class Builder {
   }
 }
 
-export function buildRoom(): SketchModel {
-  const s = new Builder()
+export function buildRoom({ real = false }: { real?: boolean } = {}): SketchModel {
+  const s = new Builder(7, real)
   const r = s.random
 
   // ---- the shell: washes, then the ink ------------------------------------
@@ -326,6 +398,9 @@ export function buildRoom(): SketchModel {
   s.wash([X1 - 0.004, 0.35, -2.6], [X1, 2.55, 1.3], 'glass')
   s.rect([wx, 0.35, -2.6], [wx, 0.35, 1.3], [wx, 2.55, 1.3], [wx, 2.55, -2.6], 0.95)
   for (const z of [-1.3, 0.0]) s.line([wx, 0.35, z], [wx, 2.55, z], 0.75)
+  for (const z of [-2.6, -1.3, 0.0, 1.3]) s.block([X1 - 0.045, 0.33, z - 0.022], [X1 - 0.002, 2.57, z + 0.022], 'metal')
+  s.block([X1 - 0.045, 2.53, -2.62], [X1 - 0.002, 2.57, 1.32], 'metal')
+  s.block([X1 - 0.16, 0.31, -2.7], [X1 - 0.002, 0.35, 1.4], 'wall')
   s.line([wx - 0.12, 0.32, -2.7], [wx - 0.12, 0.32, 1.4], 0.7)
   s.path([[wx, 0.9, -2.5], [wx, 1.15, -2.1], [wx, 1.15, -1.7], [wx, 0.95, -1.4]], 0.28, false)
   s.path([[wx, 0.8, -0.2], [wx, 1.25, 0.15], [wx, 1.05, 0.6], [wx, 1.05, 1.2]], 0.28, false)
@@ -367,9 +442,14 @@ export function buildRoom(): SketchModel {
   s.doors(-3.2, 0.2, 0.12, 0.86, zFront - 0.02, 6)
   s.box([-3.22, 0.88, Z0], [0.22, 0.92, zFront + 0.02], 'worktop')
   s.box([-1.56, 0.92, -3.42], [-0.94, 0.926, -2.95], 'appliance', 0.8)
-  for (const [hx, hz] of [[-1.4, -3.07], [-1.1, -3.07], [-1.4, -3.3], [-1.1, -3.3]] as const) s.ring(hx, 0.928, hz, 0.08, 0.18, 10)
+  for (const [hx, hz] of [[-1.4, -3.07], [-1.1, -3.07], [-1.4, -3.3], [-1.1, -3.3]] as const) {
+    s.ring(hx, 0.928, hz, 0.08, 0.18, 10)
+    s.solid(new THREE.TorusGeometry(0.06, 0.006, 6, 24).rotateX(Math.PI / 2).translate(hx, 0.929, hz), 'steel')
+  }
   s.box([-2.7, 0.92, -3.32], [-2.15, 0.924, -3.0], 'steel', 0.7)
   s.path([[-2.42, 0.925, -3.4], [-2.42, 1.18, -3.4], [-2.42, 1.18, -3.18]], 0.85, false)
+  s.rods([[-2.42, 0.92, -3.4], [-2.42, 1.18, -3.4], [-2.42, 1.18, -3.18], [-2.42, 1.11, -3.18]], 0.011, 'steel')
+  s.block([-3.15, 1.432, Z0 + 0.29], [-0.45, 1.442, Z0 + 0.33], 'bulb', true)
   // Fluted tile splashback.
   s.wash([-3.2, 0.92, Z0], [0.2, 1.45, Z0 + 0.006], 'tile')
   for (let x = -3.12; x < 0.18; x += 0.09) s.line([x, 0.93, Z0 + 0.007], [x, 1.44, Z0 + 0.007], 0.22, false)
@@ -382,14 +462,20 @@ export function buildRoom(): SketchModel {
   s.box([-0.25, 1.885, Z0 + 0.04], [-0.19, 2.06, Z0 + 0.24], 'art2', 0.75)
   s.box([-0.19, 1.885, Z0 + 0.04], [-0.15, 2.12, Z0 + 0.24], 'art3', 0.75)
   s.path([[0.0, 1.585, Z0 + 0.15], [-0.03, 1.66, Z0 + 0.15], [0.02, 1.74, Z0 + 0.15], [0.1, 1.74, Z0 + 0.15], [0.15, 1.66, Z0 + 0.15], [0.12, 1.585, Z0 + 0.15]], 0.75, false)
+  s.solid(new THREE.CylinderGeometry(0.055, 0.07, 0.16, 24).translate(0.06, 1.665, Z0 + 0.15), 'pot')
 
   // Island: fluted front, worktop, a fruit bowl, stools and pendants.
   s.box([-2.7, 0, -1.75], [-0.4, 0.9, -0.85], 'fronts')
   for (let x = -2.62; x < -0.45; x += 0.08) s.line([x, 0.04, -0.849], [x, 0.86, -0.849], 0.3, false)
+  for (let x = -2.665; x < -0.44; x += 0.05) s.block([x - 0.016, 0.03, -0.851], [x + 0.016, 0.88, -0.836], 'fronts')
   s.box([-2.78, 0.9, -1.8], [-0.32, 0.95, -0.8], 'worktop')
   s.hatchFloor(-2.75, -0.35, -0.85, -0.5, 0.06, 0.3)
   s.ring(-2.1, 0.955, -1.32, 0.16, 0.8, 14)
-  for (const [ox, oz] of [[-0.05, -0.04], [0.06, 0.02], [-0.01, 0.07]] as const) s.ring(-2.1 + ox, 0.99, -1.32 + oz, 0.05, 0.9, 8, ORANGE)
+  for (const [ox, oz] of [[-0.05, -0.04], [0.06, 0.02], [-0.01, 0.07]] as const) {
+    s.ring(-2.1 + ox, 0.99, -1.32 + oz, 0.05, 0.9, 8, ORANGE)
+    s.solid(new THREE.SphereGeometry(0.045, 18, 14).translate(-2.1 + ox, 1.0, -1.32 + oz), 'fruit')
+  }
+  s.solid(new THREE.SphereGeometry(0.17, 32, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2).scale(1, 0.45, 1).translate(-2.1, 1.03, -1.32), 'pot')
   s.box([-1.22, 0.95, -1.42], [-1.06, 0.958, -1.33], 'appliance', 0.75)
   // Pendants over the island.
   for (const sx of [-2.2, -1.55, -0.9]) {
@@ -400,6 +486,9 @@ export function buildRoom(): SketchModel {
       const t = (k / 6) * Math.PI * 2
       s.line([sx, 1.78, pz], [sx + Math.cos(t) * 0.13, 1.62, pz + Math.sin(t) * 0.13], 0.55, false)
     }
+    s.rod([sx, H, pz], [sx, 1.79, pz], 0.003, 'metal')
+    s.solid(new THREE.CylinderGeometry(0.03, 0.13, 0.17, 40, 1, true).translate(sx, 1.705, pz), 'metal')
+    s.solid(new THREE.SphereGeometry(0.035, 16, 12).translate(sx, 1.66, pz), 'bulb')
   }
   // Slim counter stools, as in our warm-white kitchen: an upholstered seat
   // and tall back on four thin legs, with a square footrest.
@@ -409,9 +498,11 @@ export function buildRoom(): SketchModel {
     s.box([sx - 0.19, 0.75, sz + 0.15], [sx + 0.19, 1.1, sz + 0.2], 'stool', 0.8)
     for (const [lx, lz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]] as const) {
       s.line([sx + lx * 0.17, 0.68, sz + lz * 0.17], [sx + lx * 0.19, 0.013, sz + lz * 0.19], 0.9, false)
+      s.rod([sx + lx * 0.17, 0.68, sz + lz * 0.17], [sx + lx * 0.19, 0.005, sz + lz * 0.19], 0.011, 'metal')
     }
     const f = 0.18
     s.rect([sx - f, 0.28, sz - f], [sx + f, 0.28, sz - f], [sx + f, 0.28, sz + f], [sx - f, 0.28, sz + f], 0.7, false)
+    s.rods([[sx - f, 0.28, sz - f], [sx + f, 0.28, sz - f], [sx + f, 0.28, sz + f], [sx - f, 0.28, sz + f], [sx - f, 0.28, sz - f]], 0.007, 'metal')
   }
 
   // ---- the workshop door (back wall, between kitchen and living) ----------
@@ -428,9 +519,10 @@ export function buildRoom(): SketchModel {
   const WX1 = 2.4
   s.wash([WX0, -0.02, WZ], [WX1, 0, Z0], 'shopFloor')
   s.wash([WX0, 0, WZ - 0.03], [WX1, H, WZ], 'shop')
-  s.wash([WX0 - 0.03, 0, WZ], [WX0, H, Z0], 'shopSide')
-  s.wash([WX1, 0, WZ], [WX1 + 0.03, H, Z0], 'shopSide')
-  s.wash([WX0, H, WZ], [WX1, H + 0.03, Z0], 'shopSide')
+  // (they stop just behind the back wall, so the two never flicker against each other)
+  s.wash([WX0 - 0.03, 0, WZ], [WX0, H, Z0 - 0.031], 'shopSide')
+  s.wash([WX1, 0, WZ], [WX1 + 0.03, H, Z0 - 0.031], 'shopSide')
+  s.wash([WX0, H, WZ], [WX1, H + 0.03, Z0 - 0.031], 'shopSide')
   for (const x of [WX0, WX1]) {
     s.line([x, 0, WZ], [x, H, WZ], 0.15, false)
     s.line([x, 0, WZ], [x, 0, Z0], 0.15, false)
@@ -439,7 +531,10 @@ export function buildRoom(): SketchModel {
   for (let x = WX0 + 0.4; x < WX1; x += 0.4) s.line([x, 0.002, WZ], [x, 0.002, Z0], 0.1, false)
   // a workbench with a lower shelf of offcuts
   s.box([-0.2, 0.86, WZ], [1.95, 0.93, WZ + 0.75], 'media', 0.35)
-  for (const [lx, lz] of [[-0.15, WZ + 0.05], [1.9, WZ + 0.05], [1.9, WZ + 0.7], [-0.15, WZ + 0.7]] as const) s.line([lx, 0.86, lz], [lx, 0, lz], 0.2, false)
+  for (const [lx, lz] of [[-0.15, WZ + 0.05], [1.9, WZ + 0.05], [1.9, WZ + 0.7], [-0.15, WZ + 0.7]] as const) {
+    s.line([lx, 0.86, lz], [lx, 0, lz], 0.2, false)
+    s.block([lx - 0.035, 0, lz - 0.035], [lx + 0.035, 0.86, lz + 0.035], 'media')
+  }
   s.box([-0.15, 0.24, WZ + 0.05], [1.9, 0.28, WZ + 0.7], 'media', 0.35)
   for (const x of [0.1, 0.45, 0.8]) s.box([x, 0.28, WZ + 0.12], [x + 0.28, 0.34, WZ + 0.6], 'walnut', 0.35)
   s.box([1.55, 0.93, WZ + 0.3], [1.75, 1.03, WZ + 0.55], 'appliance', 0.3)
@@ -462,10 +557,16 @@ export function buildRoom(): SketchModel {
   for (const x of [0.4, 1.35]) {
     s.line([x, 0.68, Z0 - 2.05], [x - 0.08, 0, Z0 - 2.05], 0.2, false)
     s.line([x, 0.68, Z0 - 1.5], [x - 0.08, 0, Z0 - 1.5], 0.2, false)
+    s.rod([x, 0.68, Z0 - 2.05], [x - 0.08, 0, Z0 - 2.05], 0.02, 'media')
+    s.rod([x, 0.68, Z0 - 1.5], [x - 0.08, 0, Z0 - 1.5], 0.02, 'media')
+    s.block([x - 0.03, 0.62, Z0 - 2.1], [x + 0.03, 0.68, Z0 - 1.45], 'media')
   }
   // a pendant over the bench
   s.line([0.9, H, WZ + 0.4], [0.9, 1.85, WZ + 0.4], 0.15, false)
   s.ring(0.9, 1.72, WZ + 0.4, 0.16, 0.12, 12)
+  s.rod([0.9, H, WZ + 0.4], [0.9, 1.86, WZ + 0.4], 0.004, 'metal')
+  s.solid(new THREE.CylinderGeometry(0.03, 0.16, 0.14, 32, 1, true).translate(0.9, 1.79, WZ + 0.4), 'metal')
+  s.solid(new THREE.SphereGeometry(0.04, 16, 12).translate(0.9, 1.74, WZ + 0.4), 'bulb')
   for (let k = 0; k < 6; k++) {
     const t = (k / 6) * Math.PI * 2
     s.line([0.9, 1.85, WZ + 0.4], [0.9 + Math.cos(t) * 0.16, 1.72, WZ + 0.4 + Math.sin(t) * 0.16], 0.12, false)
@@ -475,6 +576,7 @@ export function buildRoom(): SketchModel {
   // Fluted media wall with a TV and a floating cabinet.
   s.box([1.55, 0, Z0], [4.4, 2.6, Z0 + 0.08], 'media')
   for (let x = 1.67; x < 4.35; x += 0.12) s.line([x, 0.02, Z0 + 0.081], [x, 2.58, Z0 + 0.081], 0.3, false)
+  for (let x = 1.6; x < 4.36; x += 0.09) s.block([x, 0.02, Z0 + 0.08], [x + 0.06, 2.58, Z0 + 0.105], 'media')
   s.box([2.2, 1.15, Z0 + 0.08], [3.7, 1.95, Z0 + 0.12], 'tv')
   s.line([2.35, 1.85, Z0 + 0.123], [2.6, 1.6, Z0 + 0.123], 0.22, false)
   s.line([2.45, 1.88, Z0 + 0.123], [2.62, 1.71, Z0 + 0.123], 0.22, false)
@@ -489,14 +591,17 @@ export function buildRoom(): SketchModel {
   s.box([2.25, 0.34, -1.1], [3.55, 0.4, -0.3], 'walnut')
   for (const [lx, lz] of [[2.35, -1.0], [3.45, -1.0], [3.45, -0.4], [2.35, -0.4]] as const) {
     s.line([lx, 0.34, lz], [lx, 0.013, lz], 0.8, false)
+    s.rod([lx, 0.34, lz], [lx, 0.012, lz], 0.014, 'metal')
   }
   s.hatchFloor(2.3, 3.5, -1.05, -0.35, 0.08, 0.25, 0.014)
+  s.solid(new THREE.CylinderGeometry(0.05, 0.065, 0.18, 24).translate(3.24, 0.49, -0.7), 'pot')
   s.box([2.55, 0.4, -0.88], [2.9, 0.43, -0.62], 'art2', 0.75)
   s.path([[3.2, 0.4, -0.7], [3.17, 0.5, -0.7], [3.21, 0.58, -0.7], [3.27, 0.58, -0.7], [3.31, 0.5, -0.7], [3.28, 0.4, -0.7]], 0.75, false)
   s.box([3.3, 0.32, 0.05], [4.0, 0.42, 0.75], 'leather')
   s.box([3.3, 0.42, 0.66], [4.0, 0.92, 0.75], 'leather')
   for (const [lx, lz] of [[3.33, 0.08], [3.97, 0.08], [3.97, 0.72], [3.33, 0.72]] as const) {
     s.line([lx, 0.32, lz], [lx + (lx < 3.6 ? -0.04 : 0.04), 0.013, lz + (lz < 0.4 ? -0.05 : 0.05)], 0.8, false)
+    s.rod([lx, 0.32, lz], [lx + (lx < 3.6 ? -0.04 : 0.04), 0.005, lz + (lz < 0.4 ? -0.05 : 0.05)], 0.016, 'walnut')
   }
   const arc: V3[] = []
   for (let i = 0; i <= 12; i++) {
@@ -509,6 +614,10 @@ export function buildRoom(): SketchModel {
     ])
   }
   s.path(arc, 0.85, false)
+  s.rods(arc, 0.012, 'metal')
+  s.solid(new THREE.CylinderGeometry(0.16, 0.17, 0.025, 32).translate(4.18, 0.0125, 1.15), 'metal')
+  s.solid(new THREE.SphereGeometry(0.22, 40, 16, 0, Math.PI * 2, 0, Math.PI / 2).translate(3.45, 1.9, 0.3), 'metal')
+  s.solid(new THREE.SphereGeometry(0.05, 16, 12).translate(3.45, 1.93, 0.3), 'bulb')
   s.ring(4.18, 0.015, 1.15, 0.16, 0.8, 12)
   s.ring(3.45, 1.9, 0.3, 0.22, 0.85, 14)
   for (let k = 0; k < 6; k++) {
@@ -516,7 +625,7 @@ export function buildRoom(): SketchModel {
     s.line([3.45, 2.1, 0.3], [3.45 + Math.cos(t) * 0.22, 1.9, 0.3 + Math.sin(t) * 0.22], 0.55, false)
   }
 
-  // A plant by the window, in green pencil.
+  // A plant by the window (green pencil in the sketch).
   s.box([3.98, 0, -3.1], [4.36, 0.4, -2.72], 'pot')
   const stems: Array<[number, number, number]> = [
     [0.0, 1.35, 0.0], [-0.22, 1.12, 0.1], [0.2, 1.2, -0.08], [0.1, 0.98, 0.22], [-0.14, 1.28, -0.2],
@@ -526,12 +635,20 @@ export function buildRoom(): SketchModel {
     const mid: V3 = [4.17 + ox * 0.5, (0.4 + top) / 2, -2.91 + oz * 0.5]
     const tip: V3 = [4.17 + ox, top, -2.91 + oz]
     s.path([base, mid, tip], 0.6, false, LEAF)
+    s.rods([base, mid, tip], 0.006, 'leaf')
+    for (const at of [mid, tip]) {
+      for (const side of [-1, 1]) {
+        const leaf = new THREE.SphereGeometry(1, 12, 8).scale(0.075, 0.012, 0.032)
+        leaf.rotateZ(side * 0.5).rotateY(r() * Math.PI).translate(at[0] + side * 0.05, at[1] + 0.03, at[2])
+        s.solid(leaf, 'leaf')
+      }
+    }
     s.path([[mid[0] - 0.08, mid[1] + 0.1, mid[2]], mid, [mid[0] + 0.07, mid[1] + 0.12, mid[2] + 0.02]], 0.5, false, LEAF)
     s.path([[tip[0] - 0.09, tip[1] - 0.05, tip[2]], tip, [tip[0] + 0.08, tip[1] - 0.04, tip[2]]], 0.5, false, LEAF)
   }
 
   // ---- the door leaf, in its own layer around the hinge -------------------
-  const d = new Builder(19)
+  const d = new Builder(19, real)
   d.box([0, 0, 0], [0.85, 2.1, 0.04], 'door')
   d.wash([0.12, 0.5, 0.04], [0.22, 1.8, 0.043], 'glass')
   d.rect([0.12, 0.5, 0.044], [0.22, 0.5, 0.044], [0.22, 1.8, 0.044], [0.12, 1.8, 0.044], 0.75, false)

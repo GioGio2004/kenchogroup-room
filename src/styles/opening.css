@@ -81,6 +81,8 @@
 .intro-stage {
   position: absolute;
   inset: 0;
+  z-index: 3;
+  pointer-events: none;
   display: grid;
   place-items: center;
   align-content: center;
@@ -145,18 +147,93 @@
   transition: transform 0.4s var(--ease-out);
 }
 
-.intro-center {
+/* Two paths, side by side (stacked on portrait screens). */
+.intro-halves {
   position: absolute;
   inset: 0;
   z-index: 2;
   display: grid;
+  grid-template-columns: 1fr 1fr;
+  transition: grid-template-columns 0.9s var(--ease-out);
+}
+@media (hover: hover) {
+  .intro[data-ready] .intro-halves:has(.intro-half[data-path="classic"]:hover) {
+    grid-template-columns: 1.14fr 0.86fr;
+  }
+  .intro[data-ready] .intro-halves:has(.intro-half[data-path="sketch"]:hover) {
+    grid-template-columns: 0.86fr 1.14fr;
+  }
+}
+.intro-half {
+  position: relative;
+  display: grid;
   place-items: center;
   align-content: center;
   gap: 22px;
+  padding: 120px 24px 72px;
+  overflow: hidden;
+}
+.intro-half--sketch {
+  background-color: #f4f2ec;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.43 0 0 0 0 0.4 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    linear-gradient(rgb(31 28 24 / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(31 28 24 / 0.05) 1px, transparent 1px);
+  background-size: 220px 220px, 28px 28px, 28px 28px;
+  color: #1f1c18;
+  clip-path: inset(0% 0% 0% 100%);
+}
+.intro-path-meta {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  margin: 0;
+  font: 600 12px/1 var(--font-sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0;
+}
+.intro-path-meta span {
+  font: 500 10px/1 ui-monospace, Menlo, monospace;
+  opacity: 0.55;
+}
+.intro-path-meta em {
+  font: 400 12px/1.2 var(--font-sans);
+  font-style: normal;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  opacity: 0.6;
+}
+.intro-half--sketch .intro-path-meta em {
+  font: italic 400 16px/1.2 "Fraunces Variable", Georgia, serif;
+  font-variation-settings: "SOFT" 100, "WONK" 1;
+  opacity: 0.75;
+}
+.intro-divider {
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  bottom: 14%;
+  width: 1px;
+  background: rgb(7 7 8 / 0.16);
+  transform-origin: top;
+  transform: scaleY(0);
   pointer-events: none;
 }
-.intro-center > * {
-  pointer-events: auto;
+.intro-or {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  padding: 8px 6px;
+  background: #f5f5f3;
+  font: italic 400 15px/1 "Fraunces Variable", Georgia, serif;
+  color: rgb(7 7 8 / 0.55);
+  opacity: 0;
+  pointer-events: none;
+}
+.intro-halves:has(.intro-half:hover) :is(.intro-divider, .intro-or) {
+  visibility: hidden;
 }
 
 /* One big Start, a quarter of the screen across. Black, so the opening
@@ -165,8 +242,7 @@
   position: relative;
   display: grid;
   place-items: center;
-  width: max(25vw, 40vmin);
-  max-width: 62vh;
+  width: min(26vw, 44vh);
   aspect-ratio: 1;
   border: 0;
   border-radius: 50%;
@@ -210,6 +286,56 @@
   opacity: 0;
 }
 
+/* The sketchbook Start: a colour wash and two overshooting ink rings. */
+.intro-orb--sketch {
+  background: none;
+  color: #1f1c18;
+  overflow: visible;
+}
+.intro-sketch-art {
+  position: absolute;
+  inset: -4%;
+  width: 108%;
+  height: 108%;
+  overflow: visible;
+}
+.intro-sketch-wash {
+  fill: #d6a048;
+  transition: fill 0.5s;
+}
+.intro-orb--sketch:hover .intro-sketch-wash {
+  fill: #c0603e;
+}
+.intro-sketch-stroke {
+  fill: none;
+  stroke: #1f1c18;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+.intro-sketch-stroke + .intro-sketch-stroke {
+  stroke-width: 1.2;
+  opacity: 0.6;
+}
+.intro-sketch-ring {
+  font: 600 8.6px ui-monospace, Menlo, monospace;
+  fill: #1f1c18;
+  letter-spacing: 0.1em;
+  transform-origin: 100px 100px;
+  animation: orb-spin 24s linear infinite reverse;
+}
+.intro-orb--sketch .intro-orb-label {
+  position: relative;
+  font: italic 600 clamp(34px, 4.4vw, 72px) / 1 "Fraunces Variable", Georgia, serif;
+  font-variation-settings: "SOFT" 100, "WONK" 1, "opsz" 144;
+  letter-spacing: -0.03em;
+  text-transform: none;
+}
+.intro-orb--sketch:hover .intro-orb-label {
+  letter-spacing: 0;
+}
+
 .intro-chrome {
   position: absolute;
   inset-inline: 24px;
@@ -222,14 +348,74 @@
   color: rgb(7 7 8 / 0.5);
 }
 
-@media (max-width: 640px) {
+@media (orientation: portrait) {
+  .intro-halves {
+    grid-template-columns: none;
+    grid-template-rows: 1fr 1fr;
+  }
+  .intro-half {
+    padding: 64px 24px 24px;
+    gap: 14px;
+  }
+  .intro-half--sketch {
+    clip-path: inset(100% 0% 0% 0%);
+    padding: 24px 24px 64px;
+  }
+  .intro-divider {
+    display: none;
+  }
+  .intro-or {
+    top: 50%;
+  }
   .intro-orb {
-    width: 60vw;
+    width: min(42vw, 26vh);
   }
-  .intro-orb-label {
-    font-size: 11vw;
+  .intro-orb-label,
+  .intro-orb--sketch .intro-orb-label {
+    font-size: clamp(26px, 7vw, 44px);
   }
+  .intro-orb-ring text {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 640px) {
   .intro-chrome span:last-child {
     display: none;
+  }
+}
+
+/* Resuming after a refresh: the wordmark holds while the room loads. */
+.resume-mark {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 6px;
+  margin: 0;
+  background: #f4f2ec;
+  color: #111113;
+  font: 700 22px/1 var(--font-sans);
+  letter-spacing: -0.035em;
+  animation: resume-breathe 1.6s ease-in-out infinite;
+}
+.resume-mark[data-look="real"] {
+  background: #e9e5de;
+}
+.resume-mark span {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+}
+@keyframes resume-breathe {
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .resume-mark {
+    animation: none;
   }
 }

@@ -1,0 +1,181 @@
+{
+  "_about": "The room narrator's lines (see docs/voice-lines.md). `npm run voice` generates every take into public/media/audio/room/ and writes manifest.json. A take is text, or { text, sfx, at } to layer a sound effect `at` seconds into it.",
+  "voiceId": "B5wiYbiNK3GCUhkdcM4n",
+  "_voice": "Chris - Warm, Friendly, and Engaging (Voice Library), as in the opening: eleven_v3, stability 100%, similarity 100%",
+  "model": "eleven_v3",
+  "voiceSettings": { "stability": 1, "similarityBoost": 1 },
+  "lines": {
+    "arrive-first": [
+      "[softly] Go on. It's all yours.",
+      "[chuckles] Make yourself at home. Shoes optional.",
+      "Click on anything. [playfully] I promise I won't bite."
+    ],
+    "arrive-return": [
+      "[delighted] You're back! I knew you'd come back.",
+      "Oh, hello again. [chuckles] Couldn't stop thinking about that kitchen, could you?",
+      "Welcome back. [playfully] I kept everything exactly where you left it.",
+      "Back so soon? [laughs] I'll pretend I'm not flattered."
+    ],
+    "arrive-morning": ["Up early? [warmly] Coffee and kitchens. My favourite combination."],
+    "arrive-afternoon": ["Perfect time for a little daydreaming. [softly] Go on, look around."],
+    "arrive-evening": ["Long day? [softly] Put your feet up. Let's talk kitchens."],
+    "arrive-night": ["[whispers] Late-night kitchen planning? The best ideas show up after dark."],
+
+    "idle-20s": [
+      "[whispers] Psst… the kitchen's clickable, you know.",
+      "Go on, click something. [chuckles] I promise nothing breaks.",
+      "[curious] Thinking? Take your time… or click the kitchen. Either works.",
+      "Not sure where to start? [playfully] The kitchen. It's always the kitchen."
+    ],
+    "idle-60s": [
+      "Still there? [whispers] I can hear you thinking.",
+      "[sighs] Don't mind me… just waiting for you to click something.",
+      "[chuckles] You've been staring at that wall for a while. It's a good wall.",
+      "Hellooo? [laughs] Okay, okay… I'll be quiet."
+    ],
+
+    "kitchen-first": [
+      "It's me again. [chuckles] So you finally made it. [playfully] Try the different colours… and the different angles too. Don't hold back.",
+      "[excited] Ah, the kitchen! My favourite room. Pick a finish down below, go wild.",
+      "Here we are. [playfully] Every colour down there is a kitchen we've actually built. Try them on.",
+      "[warmly] Pull up a stool. Now… hover over anything, and I'll tell you what it's made of."
+    ],
+    "kitchen-second": [
+      { "text": "I see you're getting used to it… How's it going so far?", "sfx": "bell", "at": 1.32 },
+      "Back in the kitchen? [chuckles] Told you. It's always the kitchen.",
+      "Oh, round two. [playfully] Found your colour yet?",
+      "[knowingly] Couldn't stay away, could you?"
+    ],
+    "kitchen-again": [
+      "At this point you're basically family. [laughs] Help yourself.",
+      "Third time's the charm. [playfully] Shall we just build it?",
+      "[whispers] I won't tell anyone how often you come in here."
+    ],
+    "kitchen-materials": [
+      "Go on, explore. [whispers] Quartz on top, oak underneath.",
+      "[curious] Hover around. I'll tell you what everything's made of.",
+      "Every material here is something we really use."
+    ],
+    "finish-first": [
+      "Ooh. [impressed] Look at that.",
+      "[playfully] Now we're talking.",
+      "See? Same kitchen, whole new mood."
+    ],
+    "finish-sage": [
+      "Sage and oak. [softly] Calm, warm… very you.",
+      "Sage. [chuckles] The colour of people who own good olive oil.",
+      "Classic sage. It never goes out of style."
+    ],
+    "finish-forest": [
+      "Forest green. [approvingly] Bold. I like you already.",
+      "Ooh, forest green. That's the one everybody asks about.",
+      "[playfully] Deep green and walnut… someone has taste."
+    ],
+    "finish-white": [
+      "Warm white. [softly] Clean, bright, timeless.",
+      "Warm white… feels like a Sunday morning, doesn't it?",
+      "The safe choice? [chuckles] No. The smart one."
+    ],
+    "finish-greige": [
+      "Greige. [playfully] Not grey, not beige… perfectly in between.",
+      "A little greige, just like I said. [chuckles] I knew it.",
+      "Greige and graphite. Very grown-up."
+    ],
+    "finish-terracotta": [
+      "[laughs] Terracotta! Now that's a seventies kitchen.",
+      "Retro terracotta… my grandmother would approve.",
+      "Brave. [playfully] I love brave."
+    ],
+    "kitchen-indecisive": [
+      "Can't decide? [laughs] Neither can most of our clients.",
+      "[playfully] Take your time. They all look good on you.",
+      "Tell you what… we can mix them. Just ask.",
+      "[chuckles] Okay, okay. Don't wear out the swatches."
+    ],
+    "kitchen-linger": [
+      "You've been here a while. [warmly] When you're ready, build this kitchen is right there.",
+      "Seeing yourself in it yet? [softly] That's how it starts.",
+      "Good kitchens are never rushed… but they do get built. Bottom right."
+    ],
+
+    "gallery-first": [
+      "[excited] Ahh, yes! Our gallery. You can see the full one on our official page… just click through!",
+      "Real kitchens, real homes. [proudly] All built right here in Tbilisi.",
+      "[playfully] These four are just the warm-up. The full gallery's one click away.",
+      "Ooh, take a look. [softly] Every one of these started as a sketch, just like this room."
+    ],
+    "gallery-again": [
+      "Back for another look? [chuckles] Spotted a favourite yet?",
+      "They don't get old, do they?",
+      "[playfully] Tell me which one, and I'll pretend I'm not biased."
+    ],
+    "gallery-hover": ["Ooh, that one's a favourite.", "[softly] Look at those details.", "Good eye."],
+    "gallery-leave": ["Off you go! [chuckles] Come back and tell me.", "Enjoy the tour.", "[whispers] Bring back ideas."],
+
+    "door-hover": [
+      { "text": "[whispers] Curious?", "sfx": "door-creak", "at": 0 },
+      { "text": "[chuckles] Go on, peek.", "sfx": "door-creak", "at": 0 },
+      { "text": "[mischievously] That's where the magic happens.", "sfx": "door-creak", "at": 0 }
+    ],
+    "door-walk": [
+      "Mind the sawdust. [chuckles] This is where it all gets made.",
+      "[proudly] Welcome to the workshop. Every piece starts right here.",
+      "Smell that? [inhales] Fresh oak. Best smell in the world.",
+      "Careful, it's a bit messy. [laughs] Creative people, you know.",
+      "This is us. [warmly] Let me introduce you properly."
+    ],
+    "door-again": [
+      "Back in the workshop? [laughs] You'll be asking for a job next.",
+      "Couldn't get enough of the sawdust, eh?",
+      "[playfully] Same door. Still squeaky."
+    ],
+    "door-stay": [
+      "Changed your mind? [laughs] The door's always open.",
+      "Fair enough. Plenty to see out here.",
+      "[chuckles] Not ready to meet the team? That's okay."
+    ],
+
+    "tv-hover": ["[whispers] Psst… this is where we talk.", "Your wall, your idea.", "[playfully] Got something in mind?"],
+    "contacts-click": [
+      { "text": "Let's talk. [warmly] I'll put the kettle on.", "sfx": "kettle", "at": 1.85 },
+      "[excited] Oh, good! Let's make it happen.",
+      "Finally! [laughs] Tell us everything.",
+      "Smart move. We'll be in touch."
+    ],
+
+    "swipe-first": ["That's it. Have a wander.", "[playfully] Swipe away. I'll follow.", "Look around. Take your time."],
+    "swipe-all": [
+      "Seen the whole place. [curious] So… where to?",
+      "That's the grand tour. [chuckles] Pick a corner.",
+      "Every corner covered. Now for the fun part."
+    ],
+
+    "time-1min": [
+      "One whole minute. [chuckles] You're comfortable, aren't you?",
+      "Settling in? Good.",
+      "[softly] Nice in here, isn't it? No rush."
+    ],
+    "time-3min": [
+      "Three minutes in. [laughs] Should I start charging rent?",
+      "You know, most people just look. You're actually thinking about it.",
+      "[playfully] At this point, we're friends."
+    ],
+    "time-5min": [
+      "Honestly? [laughs] You might as well design the whole house. Contacts is by the TV.",
+      "Five minutes. [warmly] I think you've found your kitchen.",
+      "Okay, I'm convinced. You're ready. Let's talk."
+    ],
+
+    "tab-return": [
+      "Oh, you're back! [chuckles] I thought you'd left me.",
+      "[playfully] Welcome back. I didn't touch anything.",
+      "There you are. Showing someone? [laughs] Tell them I said hi."
+    ],
+    "replay-intro": ["Again? [chuckles] Okay, from the top.", "[playfully] An encore? I'm flattered.", "You liked that, huh? Here we go."]
+  },
+  "sfx": {
+    "bell": { "text": "A single bright brass service bell ding on a counter, short and clean, dry room", "duration": 1.5, "promptInfluence": 0.6 },
+    "door-creak": { "text": "An old wooden door slowly creaking open, short, dry indoor room", "duration": 1.8, "promptInfluence": 0.5 },
+    "kettle": { "text": "An electric kettle switch clicking on, then soft water starting to heat", "duration": 2.0, "promptInfluence": 0.5 }
+  }
+}

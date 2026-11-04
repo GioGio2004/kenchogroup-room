@@ -1,0 +1,432 @@
+{
+  "lines": {
+    "arrive-first": [
+      {
+        "src": "/media/audio/room/arrive-first-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/arrive-first-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/arrive-first-3.mp3"
+      }
+    ],
+    "arrive-return": [
+      {
+        "src": "/media/audio/room/arrive-return-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/arrive-return-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/arrive-return-3.mp3"
+      },
+      {
+        "src": "/media/audio/room/arrive-return-4.mp3"
+      }
+    ],
+    "arrive-morning": [
+      {
+        "src": "/media/audio/room/arrive-morning-1.mp3"
+      }
+    ],
+    "arrive-afternoon": [
+      {
+        "src": "/media/audio/room/arrive-afternoon-1.mp3"
+      }
+    ],
+    "arrive-evening": [
+      {
+        "src": "/media/audio/room/arrive-evening-1.mp3"
+      }
+    ],
+    "arrive-night": [
+      {
+        "src": "/media/audio/room/arrive-night-1.mp3"
+      }
+    ],
+    "idle-20s": [
+      {
+        "src": "/media/audio/room/idle-20s-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/idle-20s-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/idle-20s-3.mp3"
+      },
+      {
+        "src": "/media/audio/room/idle-20s-4.mp3"
+      }
+    ],
+    "idle-60s": [
+      {
+        "src": "/media/audio/room/idle-60s-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/idle-60s-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/idle-60s-3.mp3"
+      },
+      {
+        "src": "/media/audio/room/idle-60s-4.mp3"
+      }
+    ],
+    "kitchen-first": [
+      {
+        "src": "/media/audio/room/kitchen-first-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/kitchen-first-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/kitchen-first-3.mp3"
+      },
+      {
+        "src": "/media/audio/room/kitchen-first-4.mp3"
+      }
+    ],
+    "kitchen-second": [
+      {
+        "src": "/media/audio/room/kitchen-second-1.mp3",
+        "sfx": "bell",
+        "at": 1.32
+      },
+      {
+        "src": "/media/audio/room/kitchen-second-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/kitchen-second-3.mp3"
+      },
+      {
+        "src": "/media/audio/room/kitchen-second-4.mp3"
+      }
+    ],
+    "kitchen-again": [
+      {
+        "src": "/media/audio/room/kitchen-again-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/kitchen-again-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/kitchen-again-3.mp3"
+      }
+    ],
+    "kitchen-materials": [
+      {
+        "src": "/media/audio/room/kitchen-materials-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/kitchen-materials-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/kitchen-materials-3.mp3"
+      }
+    ],
+    "finish-first": [
+      {
+        "src": "/media/audio/room/finish-first-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/finish-first-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/finish-first-3.mp3"
+      }
+    ],
+    "finish-sage": [
+      {
+        "src": "/media/audio/room/finish-sage-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/finish-sage-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/finish-sage-3.mp3"
+      }
+    ],
+    "finish-forest": [
+      {
+        "src": "/media/audio/room/finish-forest-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/finish-forest-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/finish-forest-3.mp3"
+      }
+    ],
+    "finish-white": [
+      {
+        "src": "/media/audio/room/finish-white-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/finish-white-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/finish-white-3.mp3"
+      }
+    ],
+    "finish-greige": [
+      {
+        "src": "/media/audio/room/finish-greige-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/finish-greige-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/finish-greige-3.mp3"
+      }
+    ],
+    "finish-terracotta": [
+      {
+        "src": "/media/audio/room/finish-terracotta-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/finish-terracotta-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/finish-terracotta-3.mp3"
+      }
+    ],
+    "kitchen-indecisive": [
+      {
+        "src": "/media/audio/room/kitchen-indecisive-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/kitchen-indecisive-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/kitchen-indecisive-3.mp3"
+      },
+      {
+        "src": "/media/audio/room/kitchen-indecisive-4.mp3"
+      }
+    ],
+    "kitchen-linger": [
+      {
+        "src": "/media/audio/room/kitchen-linger-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/kitchen-linger-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/kitchen-linger-3.mp3"
+      }
+    ],
+    "gallery-first": [
+      {
+        "src": "/media/audio/room/gallery-first-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/gallery-first-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/gallery-first-3.mp3"
+      },
+      {
+        "src": "/media/audio/room/gallery-first-4.mp3"
+      }
+    ],
+    "gallery-again": [
+      {
+        "src": "/media/audio/room/gallery-again-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/gallery-again-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/gallery-again-3.mp3"
+      }
+    ],
+    "gallery-hover": [
+      {
+        "src": "/media/audio/room/gallery-hover-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/gallery-hover-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/gallery-hover-3.mp3"
+      }
+    ],
+    "gallery-leave": [
+      {
+        "src": "/media/audio/room/gallery-leave-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/gallery-leave-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/gallery-leave-3.mp3"
+      }
+    ],
+    "door-hover": [
+      {
+        "src": "/media/audio/room/door-hover-1.mp3",
+        "sfx": "door-creak",
+        "at": 0
+      },
+      {
+        "src": "/media/audio/room/door-hover-2.mp3",
+        "sfx": "door-creak",
+        "at": 0
+      },
+      {
+        "src": "/media/audio/room/door-hover-3.mp3",
+        "sfx": "door-creak",
+        "at": 0
+      }
+    ],
+    "door-walk": [
+      {
+        "src": "/media/audio/room/door-walk-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/door-walk-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/door-walk-3.mp3"
+      },
+      {
+        "src": "/media/audio/room/door-walk-4.mp3"
+      },
+      {
+        "src": "/media/audio/room/door-walk-5.mp3"
+      }
+    ],
+    "door-again": [
+      {
+        "src": "/media/audio/room/door-again-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/door-again-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/door-again-3.mp3"
+      }
+    ],
+    "door-stay": [
+      {
+        "src": "/media/audio/room/door-stay-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/door-stay-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/door-stay-3.mp3"
+      }
+    ],
+    "tv-hover": [
+      {
+        "src": "/media/audio/room/tv-hover-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/tv-hover-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/tv-hover-3.mp3"
+      }
+    ],
+    "contacts-click": [
+      {
+        "src": "/media/audio/room/contacts-click-1.mp3",
+        "sfx": "kettle",
+        "at": 1.85
+      },
+      {
+        "src": "/media/audio/room/contacts-click-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/contacts-click-3.mp3"
+      },
+      {
+        "src": "/media/audio/room/contacts-click-4.mp3"
+      }
+    ],
+    "swipe-first": [
+      {
+        "src": "/media/audio/room/swipe-first-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/swipe-first-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/swipe-first-3.mp3"
+      }
+    ],
+    "swipe-all": [
+      {
+        "src": "/media/audio/room/swipe-all-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/swipe-all-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/swipe-all-3.mp3"
+      }
+    ],
+    "time-1min": [
+      {
+        "src": "/media/audio/room/time-1min-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/time-1min-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/time-1min-3.mp3"
+      }
+    ],
+    "time-3min": [
+      {
+        "src": "/media/audio/room/time-3min-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/time-3min-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/time-3min-3.mp3"
+      }
+    ],
+    "time-5min": [
+      {
+        "src": "/media/audio/room/time-5min-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/time-5min-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/time-5min-3.mp3"
+      }
+    ],
+    "tab-return": [
+      {
+        "src": "/media/audio/room/tab-return-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/tab-return-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/tab-return-3.mp3"
+      }
+    ],
+    "replay-intro": [
+      {
+        "src": "/media/audio/room/replay-intro-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/replay-intro-2.mp3"
+      },
+      {
+        "src": "/media/audio/room/replay-intro-3.mp3"
+      }
+    ]
+  },
+  "sfx": {
+    "bell": "/media/audio/room/sfx-bell.mp3",
+    "door-creak": "/media/audio/room/sfx-door-creak.mp3",
+    "kettle": "/media/audio/room/sfx-kettle.mp3"
+  }
+}

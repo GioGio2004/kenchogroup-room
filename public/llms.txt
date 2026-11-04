@@ -1,0 +1,25 @@
+# The Room by Kencho Group
+
+> An interactive 3D living room and kitchen by Kencho Group, a custom furniture
+> company in Tbilisi, Georgia (kitchens, wardrobes and furniture made to
+> measure). The room is a showcase; the company's full site is
+> https://www.kenchogroup.ge.
+
+## What the room is
+
+- Two ways in: the original black-and-white opening (a narrator and kinetic
+  type) that ends in a realistic room in beige white and black, or the retro
+  sketchbook that ends in a hand-drawn room in colour.
+- The kitchen: change its finish (beige white and black quartz, sage and oak,
+  forest green and walnut, warm white and honey oak, greige and graphite,
+  retro terracotta), see each part's material, and look at it from five camera
+  angles.
+- The gallery wall: four kitchens Kencho Group has built.
+- The workshop: a walk through the door to the About page.
+
+## Kencho Group
+
+- [Gallery of projects](https://www.kenchogroup.ge/en/gallery)
+- [About Kencho Group](https://www.kenchogroup.ge/en/about)
+- [Contact](https://www.kenchogroup.ge/en/contact)
+- [Main site's llms.txt](https://www.kenchogroup.ge/llms.txt)

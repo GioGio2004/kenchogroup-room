@@ -1,0 +1,35 @@
+# The Room by Kencho Group: everything is open.
+# The AI crawlers are named on purpose, as on kenchogroup.ge: an invitation
+# to the answer engines, and safe from any future tightening of the wildcard.
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: *
+Allow: /
+
+Sitemap: https://room.kenchogroup.ge/sitemap.xml
