@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import type { PhotoKey } from '@/lib/scene-assets'
 
 /*
  * The hand-drawn room, built in code: a big retro living room with the
@@ -18,8 +19,13 @@ export type RoomKey =
   | 'glass'
   | 'curtain'
   | 'door'
-  | 'opening'
   | 'frame'
+  | 'shop'
+  | 'shopSide'
+  | 'shopFloor'
+  | 'peg'
+  | 'stool'
+  | 'ceiling'
   | 'plinth'
   | 'appliance'
   | 'steel'
@@ -33,7 +39,8 @@ export type RoomKey =
   | 'art2'
   | 'art3'
 export type FillKey = KitchenPart | RoomKey
-export type Zone = 'kitchen' | 'door' | 'media'
+export type Zone = 'kitchen' | 'door' | 'media' | 'gallery'
+export type NotePart = Exclude<KitchenPart, 'shelf'>
 
 export const PAPER = '#f4f2ec'
 
@@ -45,8 +52,13 @@ export const ROOM_COLORS: Record<RoomKey, string> = {
   glass: '#d3ddd6',
   curtain: '#d9a94f',
   door: '#d29b42',
-  opening: '#3a3029',
-  frame: '#c7a274',
+  frame: '#2f2b27',
+  shop: '#4a3f35',
+  shopSide: '#41372f',
+  shopFloor: '#5d4d3f',
+  peg: '#9a7d60',
+  stool: '#d8d2c7',
+  ceiling: '#f2eee6',
   plinth: '#9c8670',
   appliance: '#2b2a27',
   steel: '#c5c8c3',
@@ -70,7 +82,7 @@ export interface KitchenTheme {
   note: string
   colors: Record<KitchenPart, string>
   /** what each finish is, for the board and the annotations */
-  names: Record<Exclude<KitchenPart, 'shelf'>, string>
+  names: Record<NotePart, string>
 }
 
 export const KITCHEN_THEMES: KitchenTheme[] = [
@@ -135,6 +147,10 @@ export interface SketchModel {
   anchors: Record<string, THREE.Vector3>
   /** clickable volumes */
   zones: Record<Zone, { min: V3; max: V3 }>
+  /** the kitchen's parts, hoverable in the close-up */
+  parts: Array<{ part: NotePart; min: V3; max: V3 }>
+  /** real kitchen photographs hung on the gallery wall (x = their face) */
+  photos: Array<{ key: PhotoKey; x: number; y0: number; y1: number; z0: number; z1: number }>
 }
 
 export const ROOM = { w: 9, d: 7, h: 2.9 }
@@ -189,8 +205,13 @@ class Builder {
   }
 
   private fill(min: V3, max: V3, key: FillKey, shade?: number) {
-    const g = new THREE.BoxGeometry(max[0] - min[0], max[1] - min[1], max[2] - min[2]).toNonIndexed()
+    const g = new THREE.BoxGeometry(max[0] - min[0], max[1] - min[1], max[2] - min[2])
     g.translate((min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2)
+    this.add(g, key, shade)
+  }
+
+  private add(geometry: THREE.BufferGeometry, key: FillKey, shade?: number) {
+    const g = geometry.toNonIndexed()
     const n = g.getAttribute('normal')
     const c = new Float32Array(n.count * 3)
     for (let i = 0; i < n.count; i++) c.fill(shade ?? faceShade(n.getX(i), n.getY(i), n.getZ(i)), i * 3, i * 3 + 3)
@@ -283,7 +304,12 @@ export function buildRoom(): SketchModel {
 
   // ---- the shell: washes, then the ink ------------------------------------
   s.wash([X0, -0.02, Z0], [X1, 0, Z1], 'floor')
-  s.wash([X0, 0, Z0 - 0.03], [X1, H, Z0], 'wall')
+  // the back wall, with the workshop doorway left open
+  s.wash([X0, 0, Z0 - 0.03], [0.38, H, Z0], 'wall')
+  s.wash([1.37, 0, Z0 - 0.03], [X1, H, Z0], 'wall')
+  s.wash([0.38, 2.17, Z0 - 0.03], [1.37, H, Z0], 'wall')
+  // the ceiling: only shown on phones, where the camera stands inside the room
+  s.wash([X0, H, Z0], [X1, H + 0.03, Z1], 'ceiling')
   s.wash([X0 - 0.03, 0, Z0], [X0, H, Z1], 'wallSide')
   s.wash([X1, 0, Z0], [X1 + 0.03, H, Z1], 'wallSide')
   s.line([X0, 0, Z0], [X1, 0, Z0], 1)
@@ -308,31 +334,19 @@ export function buildRoom(): SketchModel {
   s.rect([X1 - 0.076, 0.06, -3.1], [X1 - 0.076, 2.7, -3.1], [X1 - 0.076, 2.7, -2.62], [X1 - 0.076, 0.06, -2.62], 0.75)
   for (const z of [-2.98, -2.86, -2.74]) s.line([X1 - 0.077, 0.1, z], [X1 - 0.077, 2.66, z], 0.35, false)
 
-  // Gallery wall (left): three framed prints.
+  // Gallery wall (left): four of our kitchens, framed (Room adds the photos).
   const fx = X0 + 0.04
-  const frame = (z0: number, z1: number, y0: number, y1: number, art: FillKey) => {
-    s.box([X0, y0, z0], [fx, y1, z1], 'frame', 0.85)
-    s.wash([fx, y0 + 0.06, z0 + 0.06], [fx + 0.005, y1 - 0.06, z1 - 0.06], art)
-    s.rect([fx + 0.006, y0 + 0.06, z0 + 0.06], [fx + 0.006, y1 - 0.06, z0 + 0.06], [fx + 0.006, y1 - 0.06, z1 - 0.06], [fx + 0.006, y0 + 0.06, z1 - 0.06], 0.6, false)
+  const photos: SketchModel['photos'] = []
+  const hang = (key: PhotoKey, z0: number, z1: number, y0: number, y1: number) => {
+    s.box([X0, y0 - 0.035, z0 - 0.035], [fx, y1 + 0.035, z1 + 0.035], 'frame', 0.9)
+    photos.push({ key, x: fx + 0.003, y0, y1, z0, z1 })
   }
-  frame(-2.35, -1.6, 1.2, 2.1, 'art1')
-  frame(-1.42, -0.5, 1.5, 2.1, 'art2')
-  frame(-1.42, -0.95, 0.95, 1.35, 'art3')
-  // the prints: a setting sun, a horizon, a moon
-  const sun: V3[] = []
-  for (let i = 0; i <= 10; i++) {
-    const t = (i / 10) * Math.PI
-    sun.push([fx + 0.007, 1.5 + Math.sin(t) * 0.2, -1.975 + Math.cos(t) * 0.2])
-  }
-  s.path(sun, 0.75, false)
-  s.line([fx + 0.007, 1.5, -2.25], [fx + 0.007, 1.5, -1.7], 0.75, false)
-  s.path([[fx + 0.007, 1.75, -1.34], [fx + 0.007, 1.86, -1.1], [fx + 0.007, 1.72, -0.85], [fx + 0.007, 1.84, -0.58]], 0.7, false)
-  const moon: V3[] = []
-  for (let i = 0; i <= 12; i++) {
-    const t = (i / 12) * Math.PI * 2
-    moon.push([fx + 0.007, 1.15 + Math.sin(t) * 0.08, -1.185 + Math.cos(t) * 0.08])
-  }
-  s.path(moon, 0.6, false, CREAM)
+  hang('kitchen', -2.55, -1.55, 1.72, 2.387)
+  hang('forest', -1.35, -0.35, 1.72, 2.387)
+  hang('white', -2.55, -1.55, 0.88, 1.547)
+  hang('greige', -1.35, -0.35, 0.88, 1.547)
+  // a slim picture ledge under the hang
+  s.box([X0, 0.74, -2.7], [X0 + 0.12, 0.77, -0.2], 'walnut', 0.8)
 
   // Floorboards (faint, slightly ragged lengths).
   for (let x = X0 + 0.55; x < X1; x += 0.55) {
@@ -377,13 +391,8 @@ export function buildRoom(): SketchModel {
   s.ring(-2.1, 0.955, -1.32, 0.16, 0.8, 14)
   for (const [ox, oz] of [[-0.05, -0.04], [0.06, 0.02], [-0.01, 0.07]] as const) s.ring(-2.1 + ox, 0.99, -1.32 + oz, 0.05, 0.9, 8, ORANGE)
   s.box([-1.22, 0.95, -1.42], [-1.06, 0.958, -1.33], 'appliance', 0.75)
+  // Pendants over the island.
   for (const sx of [-2.2, -1.55, -0.9]) {
-    const sz = -0.42
-    s.box([sx - 0.18, 0.72, sz - 0.18], [sx + 0.18, 0.77, sz + 0.18], 'walnut', 0.85)
-    for (const [lx, lz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]] as const) {
-      s.line([sx + lx * 0.15, 0.72, sz + lz * 0.15], [sx + lx * 0.2, 0, sz + lz * 0.2], 0.8, false)
-    }
-    s.rect([sx - 0.17, 0.28, sz - 0.17], [sx + 0.17, 0.28, sz - 0.17], [sx + 0.17, 0.28, sz + 0.17], [sx - 0.17, 0.28, sz + 0.17], 0.45, false)
     const pz = -1.3
     s.line([sx, H, pz], [sx, 1.78, pz], 0.55, false)
     s.ring(sx, 1.62, pz, 0.13, 0.8, 12)
@@ -392,24 +401,75 @@ export function buildRoom(): SketchModel {
       s.line([sx, 1.78, pz], [sx + Math.cos(t) * 0.13, 1.62, pz + Math.sin(t) * 0.13], 0.55, false)
     }
   }
+  // Slim counter stools, as in our warm-white kitchen: an upholstered seat
+  // and tall back on four thin legs, with a square footrest.
+  for (const sx of [-2.2, -1.55, -0.9]) {
+    const sz = -0.4
+    s.box([sx - 0.2, 0.68, sz - 0.2], [sx + 0.2, 0.75, sz + 0.2], 'stool', 0.8)
+    s.box([sx - 0.19, 0.75, sz + 0.15], [sx + 0.19, 1.1, sz + 0.2], 'stool', 0.8)
+    for (const [lx, lz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]] as const) {
+      s.line([sx + lx * 0.17, 0.68, sz + lz * 0.17], [sx + lx * 0.19, 0.013, sz + lz * 0.19], 0.9, false)
+    }
+    const f = 0.18
+    s.rect([sx - f, 0.28, sz - f], [sx + f, 0.28, sz - f], [sx + f, 0.28, sz + f], [sx - f, 0.28, sz + f], 0.7, false)
+  }
 
   // ---- the workshop door (back wall, between kitchen and living) ----------
-  s.wash([0.38, 0, Z0], [1.37, 2.17, Z0 + 0.003], 'frame')
-  s.wash([0.45, 0, Z0 + 0.003], [1.3, 2.1, Z0 + 0.005], 'opening')
-  s.rect([0.38, 0, Z0 + 0.012], [0.38, 2.17, Z0 + 0.012], [1.37, 2.17, Z0 + 0.012], [1.37, 0, Z0 + 0.012], 0.95)
-  s.path([[0.45, 0, Z0 + 0.012], [0.45, 2.1, Z0 + 0.012], [1.3, 2.1, Z0 + 0.012], [1.3, 0, Z0 + 0.012]], 0.8, false)
-  // a glimpse of the workshop behind it: a bench, tools on a pegboard, a lamp
-  const wz = Z0 + 0.006
-  s.line([0.5, 0.85, wz], [1.25, 0.85, wz], 0.12, false)
-  s.line([0.5, 0.8, wz], [1.25, 0.8, wz], 0.12, false)
-  s.line([0.57, 0.8, wz], [0.57, 0.02, wz], 0.12, false)
-  s.line([1.18, 0.8, wz], [1.18, 0.02, wz], 0.12, false)
-  s.path([[0.6, 1.5, wz], [0.8, 1.42, wz], [0.8, 1.3, wz], [0.6, 1.38, wz], [0.6, 1.5, wz]], 0.12, false)
-  s.line([0.98, 1.58, wz], [0.98, 1.26, wz], 0.12, false)
-  s.line([0.92, 1.58, wz], [1.05, 1.58, wz], 0.12, false)
-  s.line([1.12, 1.55, wz], [1.12, 1.3, wz], 0.12, false)
-  s.line([0.875, 2.1, wz], [0.875, 1.88, wz], 0.12, false)
-  s.path([[0.8, 1.84, wz], [0.95, 1.84, wz], [0.875, 1.9, wz], [0.8, 1.84, wz]], 0.1, false)
+  // an oak architrave round an open doorway; the leaf is its own layer
+  s.wash([0.38, 0, Z0], [0.45, 2.17, Z0 + 0.012], 'media')
+  s.wash([1.3, 0, Z0], [1.37, 2.17, Z0 + 0.012], 'media')
+  s.wash([0.45, 2.1, Z0], [1.3, 2.17, Z0 + 0.012], 'media')
+  s.rect([0.38, 0, Z0 + 0.013], [0.38, 2.17, Z0 + 0.013], [1.37, 2.17, Z0 + 0.013], [1.37, 0, Z0 + 0.013], 0.95)
+  s.path([[0.45, 0, Z0 + 0.013], [0.45, 2.1, Z0 + 0.013], [1.3, 2.1, Z0 + 0.013], [1.3, 0, Z0 + 0.013]], 0.8, false)
+
+  // ---- the workshop behind it (only seen through the door) ----------------
+  const WZ = Z0 - 3.2
+  const WX0 = -0.6
+  const WX1 = 2.4
+  s.wash([WX0, -0.02, WZ], [WX1, 0, Z0], 'shopFloor')
+  s.wash([WX0, 0, WZ - 0.03], [WX1, H, WZ], 'shop')
+  s.wash([WX0 - 0.03, 0, WZ], [WX0, H, Z0], 'shopSide')
+  s.wash([WX1, 0, WZ], [WX1 + 0.03, H, Z0], 'shopSide')
+  s.wash([WX0, H, WZ], [WX1, H + 0.03, Z0], 'shopSide')
+  for (const x of [WX0, WX1]) {
+    s.line([x, 0, WZ], [x, H, WZ], 0.15, false)
+    s.line([x, 0, WZ], [x, 0, Z0], 0.15, false)
+  }
+  s.line([WX0, 0, WZ], [WX1, 0, WZ], 0.15, false)
+  for (let x = WX0 + 0.4; x < WX1; x += 0.4) s.line([x, 0.002, WZ], [x, 0.002, Z0], 0.1, false)
+  // a workbench with a lower shelf of offcuts
+  s.box([-0.2, 0.86, WZ], [1.95, 0.93, WZ + 0.75], 'media', 0.35)
+  for (const [lx, lz] of [[-0.15, WZ + 0.05], [1.9, WZ + 0.05], [1.9, WZ + 0.7], [-0.15, WZ + 0.7]] as const) s.line([lx, 0.86, lz], [lx, 0, lz], 0.2, false)
+  s.box([-0.15, 0.24, WZ + 0.05], [1.9, 0.28, WZ + 0.7], 'media', 0.35)
+  for (const x of [0.1, 0.45, 0.8]) s.box([x, 0.28, WZ + 0.12], [x + 0.28, 0.34, WZ + 0.6], 'walnut', 0.35)
+  s.box([1.55, 0.93, WZ + 0.3], [1.75, 1.03, WZ + 0.55], 'appliance', 0.3)
+  // a pegboard with tools
+  s.wash([0.0, 1.15, WZ], [1.75, 2.1, WZ + 0.01], 'peg')
+  const pz = WZ + 0.012
+  s.path([[0.15, 1.95, pz], [0.55, 1.8, pz], [0.55, 1.62, pz], [0.15, 1.77, pz], [0.15, 1.95, pz]], 0.85, false)
+  s.line([0.75, 1.98, pz], [0.75, 1.55, pz], 0.85, false)
+  s.line([0.68, 1.98, pz], [0.84, 1.98, pz], 0.85, false)
+  s.path([[1.0, 1.98, pz], [1.0, 1.5, pz], [1.3, 1.5, pz]], 0.85, false)
+  for (const x of [1.45, 1.52, 1.59]) s.line([x, 1.95, pz], [x, 1.62, pz], 0.85, false)
+  s.line([0.0, 1.15, pz], [1.75, 1.15, pz], 0.4, false)
+  // a lumber rack along the right wall
+  for (let i = 0; i < 4; i++) {
+    const y = 0.55 + i * 0.4
+    s.box([2.12, y, WZ + 0.2], [2.38, y + 0.06, Z0 - 0.35], 'media', 0.3)
+  }
+  // a cabinet door blank resting on two trestles
+  s.box([0.25, 0.68, Z0 - 2.1], [1.5, 0.72, Z0 - 1.45], 'door', 0.3)
+  for (const x of [0.4, 1.35]) {
+    s.line([x, 0.68, Z0 - 2.05], [x - 0.08, 0, Z0 - 2.05], 0.2, false)
+    s.line([x, 0.68, Z0 - 1.5], [x - 0.08, 0, Z0 - 1.5], 0.2, false)
+  }
+  // a pendant over the bench
+  s.line([0.9, H, WZ + 0.4], [0.9, 1.85, WZ + 0.4], 0.15, false)
+  s.ring(0.9, 1.72, WZ + 0.4, 0.16, 0.12, 12)
+  for (let k = 0; k < 6; k++) {
+    const t = (k / 6) * Math.PI * 2
+    s.line([0.9, 1.85, WZ + 0.4], [0.9 + Math.cos(t) * 0.16, 1.72, WZ + 0.4 + Math.sin(t) * 0.16], 0.12, false)
+  }
 
   // ---- the living area (right) ---------------------------------------------
   // Fluted media wall with a TV and a floating cabinet.
@@ -482,9 +542,10 @@ export function buildRoom(): SketchModel {
     main: s.layer(),
     door: d.layer(),
     hinge: [0.45, 0, Z0 + 0.006],
+    photos,
     anchors: {
       kitchen: new THREE.Vector3(-1.8, 2.25, Z0 + 0.36),
-      gallery: new THREE.Vector3(fx, 1.65, -1.975),
+      gallery: new THREE.Vector3(fx, 2.05, -0.85),
       about: new THREE.Vector3(1.05, 1.45, Z0 + 0.05),
       contact: new THREE.Vector3(3.95, 1.55, Z0 + 0.09),
       // kitchen close-up annotations
@@ -492,12 +553,24 @@ export function buildRoom(): SketchModel {
       tile: new THREE.Vector3(-0.75, 1.18, Z0 + 0.008),
       worktop: new THREE.Vector3(-0.75, 0.955, -1.15),
       fronts: new THREE.Vector3(-2.05, 0.45, -0.845),
+      // photo captions sit at each print's lower left, as seen facing the wall
+      ...Object.fromEntries(photos.map((p, i) => [`photo${i}`, new THREE.Vector3(p.x, p.y0, p.z1)])),
     },
     zones: {
       kitchen: { min: [-4.4, 0, Z0], max: [0.22, 2.4, -0.2] },
       door: { min: [0.38, 0, Z0], max: [1.37, 2.17, Z0 + 0.3] },
       media: { min: [1.55, 0, Z0], max: [4.4, 2.6, Z0 + 0.55] },
+      gallery: { min: [X0, 0.7, -2.7], max: [X0 + 0.3, 2.45, -0.2] },
     },
+    parts: [
+      { part: 'cabinets', min: [-3.2, 1.45, Z0], max: [-0.4, 2.25, Z0 + 0.36] },
+      { part: 'cabinets', min: [-4.4, 0, Z0], max: [-3.2, 2.4, zFront] },
+      { part: 'tile', min: [-3.2, 0.92, Z0], max: [0.2, 1.45, Z0 + 0.02] },
+      { part: 'worktop', min: [-3.22, 0.88, Z0], max: [0.22, 0.93, zFront + 0.02] },
+      { part: 'worktop', min: [-2.78, 0.9, -1.8], max: [-0.32, 0.96, -0.8] },
+      { part: 'fronts', min: [-3.2, 0, Z0], max: [0.2, 0.88, zFront] },
+      { part: 'fronts', min: [-2.7, 0, -1.75], max: [-0.4, 0.9, -0.85] },
+    ],
   }
 }
 
