@@ -33,6 +33,8 @@ const LINES: Array<[id: string, line: string]> = [
 export default function Page({ sound, onSound, onReplay }: { sound: boolean; onSound: (on: boolean) => void; onReplay: () => void }) {
   const root = useRef<HTMLDivElement>(null)
   const [play, setPlay] = useState(false)
+  // the burst leaves the document once it has played
+  const [burst, setBurst] = useState(true)
 
   // the narrator follows the switch
   useEffect(() => {
@@ -47,12 +49,17 @@ export default function Page({ sound, onSound, onReplay }: { sound: boolean; onS
       ;(window as Window & { __lenis?: { scrollTo: (y: number, o: object) => void } }).__lenis?.scrollTo(0, { immediate: true, force: true })
       if (reduced()) {
         setPlay(true)
-        gsap.set('.burst', { autoAlpha: 0 })
+        setBurst(false)
         return
       }
       gsap
-        .timeline()
-        .fromTo('.burst i', { scale: 0 }, { scale: 1, duration: 1.15, stagger: 0.11, ease: 'expo.inOut' })
+        .timeline({ onComplete: () => setBurst(false) })
+        .fromTo(
+          '.burst i',
+          { clipPath: 'circle(0% at 50% 50%)' },
+          // (a circle's % is of the diagonal / √2: past 71% it covers the corners)
+          { clipPath: 'circle(75% at 50% 50%)', duration: 1.15, stagger: 0.11, ease: 'expo.inOut' },
+        )
         .call(() => setPlay(true), [], 0.95)
         .to('.burst', { autoAlpha: 0, duration: 0.6, ease: 'power2.out' }, 1.25)
     },
@@ -93,13 +100,15 @@ export default function Page({ sound, onSound, onReplay }: { sound: boolean; onS
       <RoomFooter sound={sound} onReplay={onReplay} />
       <div className="page-grain" aria-hidden="true" />
       <Cursor />
-      <div className="burst" aria-hidden="true">
-        <i style={{ background: 'var(--terra)' }} />
-        <i style={{ background: 'var(--mustard)' }} />
-        <i style={{ background: 'var(--sage)' }} />
-        <i style={{ background: 'var(--forest)' }} />
-        <i style={{ background: 'var(--paper)' }} />
-      </div>
+      {burst && (
+        <div className="burst" aria-hidden="true">
+          <i style={{ background: 'var(--terra)' }} />
+          <i style={{ background: 'var(--mustard)' }} />
+          <i style={{ background: 'var(--sage)' }} />
+          <i style={{ background: 'var(--forest)' }} />
+          <i style={{ background: 'var(--paper)' }} />
+        </div>
+      )}
     </div>
   )
 }

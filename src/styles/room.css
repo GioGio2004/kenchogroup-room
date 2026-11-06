@@ -752,7 +752,7 @@
   --panel-ink: #fbf2e3;
   --panel-muted: rgb(251 242 227 / 0.62);
   --panel-rule: rgb(251 242 227 / 0.22);
-  --panel-font: "Fraunces Variable", Georgia, serif;
+  --panel-font: var(--font-sans);
   position: absolute;
   z-index: 45;
   top: 0;

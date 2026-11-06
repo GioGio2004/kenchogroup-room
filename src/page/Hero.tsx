@@ -47,12 +47,14 @@ export default function Hero({ play }: { play: boolean }) {
     <section ref={root} className="hero" id="top" aria-labelledby="hero-title">
       <div className="hero-copy">
         <h1 id="hero-title" className="hero-title">
+          {/* (the spaces between the lines are for search engines and screen
+              readers: the grid ignores them) */}
           <span className="hero-line" data-i="0">
             Furniture
-          </span>
+          </span>{' '}
           <span className="hero-line" data-i="1">
             drawn for
-          </span>
+          </span>{' '}
           <span className="hero-line hero-line--em" data-i="2">
             your walls.
           </span>
@@ -70,7 +72,13 @@ export default function Hero({ play }: { play: boolean }) {
 
       <div className="hero-sun" aria-hidden="true">
         <figure className="hero-window">
-          <img src={photo('walnut-island')} width={PHOTO['walnut-island'].w} height={PHOTO['walnut-island'].h} alt="" />
+          <img
+            src={photo('walnut-island')}
+            width={PHOTO['walnut-island'].w}
+            height={PHOTO['walnut-island'].h}
+            alt={`${PHOTO['walnut-island'].alt}, made by Kencho Group in Tbilisi`}
+            fetchPriority="high"
+          />
         </figure>
       </div>
     </section>

@@ -27,6 +27,9 @@ the whole page lifts off it like a lid.
 - Phones first (~80% of traffic). Every heavy asset needs a phone budget.
 - Motion glides, never snaps: long inOut/out eases (`--ease-glide`).
 - `prefers-reduced-motion` → fades only.
+- iOS Safari kills tabs over their layer memory (3x screens: w·h·9·4 bytes per
+  layer). Never `scale` an oversized element to cover the screen; clip a
+  screen-sized one. Check with `npm run perf:mem` (`docs/page.md`).
 - Audio needs a user gesture; always offer sound-off with captions.
 - Media lives in `public/media/{video,frames,audio}`. No secrets in `VITE_*`.
 - Lenis is the one scroller (`src/lib/motion.ts`).

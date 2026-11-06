@@ -89,6 +89,7 @@ export default function Kinetic({ audio, sound: startWithSound, origin, urls, on
         },
       })
       const vw = window.innerWidth
+      const phone = vw < 640 || window.matchMedia('(pointer: coarse)').matches
 
       CARDS.forEach((card, i) => {
         const sel = (s = '') => q(`[data-card="${i}"] ${s}`.trim())
@@ -103,7 +104,8 @@ export default function Kinetic({ audio, sound: startWithSound, origin, urls, on
         t.set(el, { autoAlpha: 1 }, start)
         if (next) {
           if (!reduced && card.exit === 'zoom') {
-            t.to(inner, { scale: 4, filter: 'blur(24px)', opacity: 0, duration: 0.22, ease: 'power3.in' }, end - 0.22)
+            // (phones: a smaller fly-through, so the text layer isn't rasterised at 4x on a 3x screen)
+            t.to(inner, { scale: phone ? 2.2 : 4, filter: phone ? 'blur(12px)' : 'blur(24px)', opacity: 0, duration: 0.22, ease: 'power3.in' }, end - 0.22)
           } else if (!reduced && card.exit !== 'cut') {
             t.to(inner, { scale: 1.06, filter: 'blur(10px)', opacity: 0, duration: 0.14, ease: 'power2.in' }, end - 0.14)
           }

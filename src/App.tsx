@@ -20,9 +20,12 @@ const MIN_LOADER_MS = 3000
 type Phase = 'loading' | 'ready' | 'leaving' | 'playing' | 'page'
 
 /* Been through the opening before: a reload goes straight to the page.
-   ?intro in the address brings the opening back. */
+   ?intro in the address brings the opening back. Search engines never press
+   Start, so they are shown the page itself, the same page people reach after
+   the opening. */
 const seen = tracker.get()
-const RESUME = seen.introSeen && !new URLSearchParams(location.search).has('intro')
+const CRAWLER = /bot\/|crawler|spider|slurp|bingpreview|facebookexternalhit|inspectiontool/i.test(navigator.userAgent)
+const RESUME = (seen.introSeen || CRAWLER) && !new URLSearchParams(location.search).has('intro')
 
 /*
  * The opening (the narrator and the kinetic type, on cream with an orange

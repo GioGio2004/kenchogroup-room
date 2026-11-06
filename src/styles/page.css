@@ -741,15 +741,13 @@ html:not([data-cursor-moved]) :is(.cur-ring, .cur-dot) {
   overflow: hidden;
   pointer-events: none;
 }
+/* Each ring is the screen itself, uncovered through a growing circle. (Never
+   oversized circles scaled up: five 300vmax layers at 3x cost iOS Safari
+   over a gigabyte and it kills the tab.) */
 .burst i {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 300vmax;
-  height: 300vmax;
-  margin: -150vmax 0 0 -150vmax;
-  border-radius: 50%;
-  transform: scale(0);
+  inset: 0;
+  clip-path: circle(0% at 50% 50%);
 }
 
 /* ---- reduced motion: no pins, no throws; everything simply there --- */

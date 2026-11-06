@@ -28,8 +28,8 @@ On branch `claude/mono`, forked from `main` (production).
 
 | Section | File | What happens |
 |---|---|---|
-| Arrival | `Page.tsx` | Coloured rings burst out of the opening, then the hero lands. |
-| Hero | `Hero.tsx` | Three lines of serif land letter by letter beside a real kitchen in a plain arch. Book a meeting goes to kenchogroup.ge. |
+| Arrival | `Page.tsx` | Coloured rings (screen-sized circle masks) burst out of the opening, then the hero lands. |
+| Hero | `Hero.tsx` | Three lines of Inter land letter by letter beside a real kitchen in a plain arch. Book a meeting goes to kenchogroup.ge. |
 | (01) What we do | `Manifesto.tsx` | One centred sentence. The screen holds while it lights up word by word. |
 | (02) What we make | `Pieces.tsx` | The section pins and six coloured cards slide past sideways, each with its own photo shape. |
 | (03) Palettes | `Finishes.tsx` | The room's five kitchen finishes, each drawn as a kitchen reduced to stripes: wall units, splashback, worktop, base fronts. Together they make a stripe wall. The scroll opens the columns in turn; hover opens one; a click picks it for the room (the `kencho:finish` event plus localStorage). |
@@ -61,4 +61,29 @@ Start the dev server first (`room-dev`).
   - Contacts pointing to the main site;
   - the menu, and its jump to the room.
 
-Last run (desktop, headless): average 54 fps, median frame 16.7 ms; no console errors.
+- `npm run perf:mem`: an iPhone viewport at 3x. At each moment it reports the composited layers and what their backing stores would cost at full size, plus decoded images and canvases. `PROBE_OPENING=1` probes the opening first.
+- `npm run og:image`: redraws `public/og.jpg` (1200 x 630) and the app icons from the page's type, colours and hero photo.
+
+Last run (phone, headless): average 59 fps, median frame 16.7 ms; no console errors.
+
+## Phones: memory
+
+iOS Safari kills a tab that holds too much layer memory. It reloads the tab, and if that crashes too it shows "A problem repeatedly occurred". Layers are costed at width x height x 3² x 4 bytes on a 3x iPhone, and WebKit only tiles layers over 2000 px.
+
+- The arrival burst once scaled five 300vmax circles with GPU transforms: 2532 px each on a phone, about 230 MB per layer. Each ring is now the screen itself, uncovered through a growing `clip-path: circle()`. The burst leaves the document once it has played.
+- Never animate an oversized element with `scale` to cover the screen. Clip a screen-sized one instead.
+- On phones, the opening's zoom exits fly to 2.2x with a 12px blur (4x and 24px on desktop).
+
+## Search and analytics
+
+- `index.html` holds the title, description, Open Graph and Twitter cards, and JSON-LD:
+  - the WebSite;
+  - the WebPage;
+  - Kencho Group as a FurnitureStore, with its address, phone and hours from `src/page/content.ts`.
+  - It also holds a hidden copy of the page's text for crawlers that don't run JavaScript.
+- Crawlers (`bot/`, crawler, spider… in the user agent) skip the opening and get the page itself, the same page people reach after it.
+- `public/robots.txt`, `sitemap.xml` (with the page's photos), `llms.txt`, `site.webmanifest` and the icons.
+- Vercel Web Analytics is the `<Analytics />` in `src/main.tsx`; turn it on in the Vercel dashboard. Ahrefs Web Analytics is the script in `index.html`. Both are cookieless, so no consent banner.
+- `vercel.json` sets the cache headers:
+  - hashed `/assets` for a year;
+  - `/media` for a day, revalidating in the background.

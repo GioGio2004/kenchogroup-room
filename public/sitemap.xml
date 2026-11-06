@@ -2,11 +2,30 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://room.kenchogroup.ge/</loc>
-    <lastmod>2026-11-04</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>1.0</priority>
+    <lastmod>2026-11-07</lastmod>
     <image:image>
       <image:loc>https://room.kenchogroup.ge/og.jpg</image:loc>
+    </image:image>
+    <image:image>
+      <image:loc>https://room.kenchogroup.ge/media/photos/walnut-island.webp</image:loc>
+    </image:image>
+    <image:image>
+      <image:loc>https://room.kenchogroup.ge/media/photos/green-island.webp</image:loc>
+    </image:image>
+    <image:image>
+      <image:loc>https://room.kenchogroup.ge/media/photos/oak-wardrobe.webp</image:loc>
+    </image:image>
+    <image:image>
+      <image:loc>https://room.kenchogroup.ge/media/photos/media-wall.webp</image:loc>
+    </image:image>
+    <image:image>
+      <image:loc>https://room.kenchogroup.ge/media/photos/arched-shelves.webp</image:loc>
+    </image:image>
+    <image:image>
+      <image:loc>https://room.kenchogroup.ge/media/photos/kids-room.webp</image:loc>
+    </image:image>
+    <image:image>
+      <image:loc>https://room.kenchogroup.ge/media/photos/walnut-wall.webp</image:loc>
     </image:image>
   </url>
 </urlset>
