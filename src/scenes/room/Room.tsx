@@ -29,6 +29,8 @@ import { RealScene } from '@/scenes/room/RealScene'
 import '@/styles/room.css'
 
 const MAIN = import.meta.env.VITE_MAIN_SITE_URL ?? 'https://www.kenchogroup.ge'
+/* The page's finish deck tells the room about a new pick with this event. */
+const FINISH_EVENT = 'kencho:finish'
 const DRAW_SECONDS = 4.4
 const FINISH_KEY = 'kencho-room-finish'
 const REDIRECT_MS = 3600
@@ -479,7 +481,27 @@ function Paint({ mats, targets, live, door }: { mats: Mats; targets: Colors; liv
  * Click the kitchen to change its finish, the gallery wall to see our work,
  * the workshop door to walk through to About us.
  */
-export default function Room({ onReplay, sound = true, look = 'sketch' }: { onReplay: () => void; sound?: boolean; look?: RoomLook }) {
+/*
+ * `embedded`: the room is a section of the page, not the whole screen. It
+ * draws itself the first time it is `active` (on screen), sleeps while it
+ * is off screen, and leaves the header and menu to the page.
+ */
+export default function Room({
+  onReplay,
+  sound = true,
+  look = 'sketch',
+  embedded = false,
+  active = true,
+  onContact,
+}: {
+  onReplay: () => void
+  sound?: boolean
+  look?: RoomLook
+  embedded?: boolean
+  active?: boolean
+  /** given: the TV (and "Build this kitchen") open the page's contact card instead of leaving */
+  onContact?: () => void
+}) {
   const root = useRef<HTMLElement>(null)
   const door = useRef<THREE.Group>(null)
   const flight = useRef<gsap.core.Timeline | null>(null)
@@ -539,6 +561,13 @@ export default function Room({ onReplay, sound = true, look = 'sketch' }: { onRe
   const touch = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
   const mode = !ready ? 'off' : view
   const here = NAV[STOPS[stop].nav]
+  // embedded: nothing is drawn until the room first comes on screen
+  const [started, setStarted] = useState(!embedded)
+  const activeRef = useRef(active)
+  useEffect(() => {
+    activeRef.current = active
+    if (active) setStarted(true)
+  }, [active])
 
   const [realMats] = useState(() => (look === 'real' ? makeRealMaterials() : null))
   const [mats] = useState<Mats>(() => {
@@ -567,21 +596,36 @@ export default function Room({ onReplay, sound = true, look = 'sketch' }: { onRe
   useGSAP(
     () => {
       const L = live.current
+      if (!started) return
       if (reduced) {
         Object.assign(L, { drawn: 1, wash: 1, arrive: 1 })
         setReady(true)
         return
       }
-      gsap
-        .timeline()
-        .fromTo(root.current, { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.1, ease: 'expo.inOut', clearProps: 'clipPath' })
-        .to(L, { drawn: 1, duration: DRAW_SECONDS, ease: 'power1.inOut', onComplete: () => setReady(true) }, 0.5)
+      const tl = gsap.timeline()
+      if (!embedded) tl.fromTo(root.current, { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.1, ease: 'expo.inOut', clearProps: 'clipPath' })
+      tl.to(L, { drawn: 1, duration: DRAW_SECONDS, ease: 'power1.inOut', onComplete: () => setReady(true) }, 0.5)
         .to(L, { arrive: 1, duration: DRAW_SECONDS + 0.6, ease: 'power2.inOut' }, 0.5)
         .to(L, look === 'real' ? { wash: 1, duration: 3.4, ease: 'power2.inOut' } : { wash: 1, duration: 1.8, ease: 'power2.out' }, look === 'real' ? 0.4 : 0.5 + DRAW_SECONDS * 0.6)
         .from('.room-chrome', { opacity: 0, y: -10, duration: 0.8, ease: 'power3.out', stagger: 0.08 }, DRAW_SECONDS - 0.4)
     },
-    { scope: root },
+    { scope: root, dependencies: [started] },
   )
+
+  // Embedded: the page's switch is the narrator's switch.
+  useEffect(() => {
+    if (embedded) setVoice(sound)
+  }, [embedded, sound])
+
+  // The page's finish deck picked a new finish.
+  useEffect(() => {
+    const on = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail
+      if (themes.some((t) => t.id === id)) setThemeId(id)
+    }
+    window.addEventListener(FINISH_EVENT, on)
+    return () => window.removeEventListener(FINISH_EVENT, on)
+  }, [themes])
 
   // Phone or desktop: decided by the screen's shape, and kept up to date.
   useEffect(() => {
@@ -661,9 +705,9 @@ export default function Room({ onReplay, sound = true, look = 'sketch' }: { onRe
     const poke = () => {
       active = performance.now()
     }
-    const calm = () => narrator.quietFor() > 10000 && !flight.current?.isActive() && L.view !== 'door'
+    const calm = () => activeRef.current && narrator.quietFor() > 10000 && !flight.current?.isActive() && L.view !== 'door'
     const tick = window.setInterval(() => {
-      if (!document.hidden) tracker.addTime(2000)
+      if (!document.hidden && activeRef.current) tracker.addTime(2000)
       if (document.hidden || !calm()) return
       const now = performance.now()
       const idle = now - active
@@ -859,6 +903,13 @@ export default function Room({ onReplay, sound = true, look = 'sketch' }: { onRe
     void narrator.say('door-stay', { priority: 3 })
   }
 
+  // Embedded: scrolled away from a close-up, the room steps back out of it.
+  useEffect(() => {
+    const v = live.current.view
+    if (embedded && !active && (v === 'kitchen' || v === 'gallery')) fly('room')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [embedded, active])
+
   /* A new finish: the first one, the one picked, or a gentle "can't decide?". */
   const chooseFinish = (id: string) => {
     if (id === themeId) return
@@ -877,6 +928,11 @@ export default function Room({ onReplay, sound = true, look = 'sketch' }: { onRe
     if (z === 'gallery') return fly('gallery')
     if (z === 'door') return fly('door')
     setHot('media')
+    if (onContact) {
+      void narrator.say('contacts-click', { priority: 3 })
+      onContact()
+      return
+    }
     leave(`${MAIN}/en/contact`, narrator.say('contacts-click', { priority: 3 }))
   }
 
@@ -958,9 +1014,10 @@ export default function Room({ onReplay, sound = true, look = 'sketch' }: { onRe
         : 'Click the kitchen to design it'
 
   return (
-    <section ref={root} className="room" data-look={look} data-view={view} data-mobile={mobile || undefined} aria-label="The room">
+    <section ref={root} className="room" data-look={look} data-view={view} data-mobile={mobile || undefined} data-embedded={embedded || undefined} aria-label="The room">
       <Canvas
         className="room-canvas"
+        frameloop={embedded && !active ? 'never' : 'always'}
         dpr={look === 'real' ? [1, 1.75] : [1, 2]}
         camera={{ position: [0.3, 2.4, 9], fov: 44, near: 0.1, far: 60 }}
         flat={look === 'sketch'}
@@ -1162,7 +1219,16 @@ export default function Room({ onReplay, sound = true, look = 'sketch' }: { onRe
             ))}
           </div>
         </div>
-        <a className="room-link" href={`${MAIN}/en/contact`} onClick={linkOut('contacts-click')}>
+        <a
+          className="room-link"
+          href={`${MAIN}/en/contact`}
+          onClick={(e) => {
+            if (!onContact || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return linkOut('contacts-click')(e)
+            e.preventDefault()
+            void narrator.say('contacts-click', { priority: 3 })
+            onContact()
+          }}
+        >
           Build this kitchen <Arrow />
         </a>
       </div>

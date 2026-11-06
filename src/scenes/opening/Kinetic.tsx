@@ -15,7 +15,10 @@ const endOf = (ch: Chunk) => words(ch).at(-1)!.end
 const textOf = (ch: Chunk) => words(ch).map((w) => w.text).join(' ')
 const cardStart = (card: Card) => Math.max(0, startOf(card.chunks[0]) - CUT_LEAD)
 
-const SPLIT_FX = new Set(['type', 'scatter'])
+const SPLIT_FX = new Set(['type', 'scatter', 'palette'])
+
+/* HOME, letter by letter, in the palette */
+const PALETTE = ['#c5603d', '#dca546', '#8e9b85', '#e7ab9a', '#f3eee3']
 
 /* Fixed layouts so the server-free first paint and every replay match. */
 const SCATTER_SLOTS = [
@@ -143,6 +146,26 @@ export default function Kinetic({ audio, sound: startWithSound, origin, urls, on
               start,
             )
           }
+        }
+
+        // ---- the odd one out: the group closes ranks and pushes the kitchen out --
+        if (card.group && !reduced) {
+          const vh = window.innerHeight
+          const rest = sel('.k-group-img:not([data-out])')
+          const out = sel('.k-group-img[data-out]')
+          t.fromTo(sel('.k-group-img'), { opacity: 0, y: 40, scale: 0.85 }, { opacity: 1, y: 0, scale: 1, duration: 0.28, stagger: 0.025, ease: 'expo.out' }, start)
+            // the group jostles…
+            .to(rest, { x: (_: number, el: HTMLElement) => -Number(el.dataset.side) * vw * 0.012, duration: 0.07, repeat: 3, yoyo: true, ease: 'none' }, start + 0.26)
+            // …the kitchen is shoved up and out, alone and in colour…
+            .to(out, { y: -vh * 0.17, scale: 1.85, rotate: -3, duration: 0.65, ease: 'expo.out' }, start + 0.3)
+            // …and the rest close ranks and fall away
+            .to(rest, { y: vh * 0.2, scale: 0.7, opacity: 0, filter: 'blur(6px)', duration: 0.5, stagger: { each: 0.02, from: 'center' }, ease: 'power3.in' }, start + 0.42)
+        }
+        // ---- the tide: once the word is full, orange paints the whole screen ----
+        if (card.flood && !reduced) {
+          const last = card.chunks.at(-1)!
+          const full = startOf(last) - LEAD + 0.7
+          t.fromTo(sel('.k-flood'), { yPercent: 100 }, { yPercent: 0, duration: Math.max(0.35, end - full), ease: 'power2.in' }, full)
         }
 
         // ---- decorations ------------------------------------------------------
@@ -277,6 +300,26 @@ export default function Kinetic({ audio, sound: startWithSound, origin, urls, on
                 at,
               ).to(target, { '--g1': '0px', '--g2': '0px', duration: 0.5, ease: 'steps(7)' }, at + 0.05)
               break
+            case 'water':
+              // the outline lands, then orange water rises inside it, waves running
+              t.fromTo(target, { opacity: 0, scale: 1.12 }, { opacity: 1, scale: 1, duration: 0.35, ease: 'expo.out' }, at).fromTo(
+                sel(`[data-chunk="${j}"] .k-water`),
+                { backgroundPosition: '0px 0%' },
+                { backgroundPosition: '-720px 100%', duration: 0.6, ease: 'power1.inOut' },
+                at + 0.12,
+              )
+              break
+            case 'palette': {
+              // slams in, then each letter takes a colour of the palette
+              const chars = sel(`[data-chunk="${j}"] .k-ch`)
+              t.fromTo(
+                target,
+                { opacity: 0, scale: 1.7, filter: 'blur(18px)' },
+                { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.34, ease: 'expo.out' },
+                at,
+              ).to(chars, { color: (k: number) => PALETTE[k % PALETTE.length], duration: 0.4, stagger: 0.14, ease: 'power2.out' }, at + 0.5)
+              break
+            }
             case 'outline':
               t.fromTo(target, { opacity: 0, scale: 1.12, '--fill': '100%' }, { opacity: 1, scale: 1, duration: 0.4, ease: 'expo.out' }, at).to(
                 target,
@@ -319,6 +362,8 @@ export default function Kinetic({ audio, sound: startWithSound, origin, urls, on
       // HOME holds for a breath before the room takes over.
       t.to({}, { duration: 0.01 }, LINES.at(-1)!.end + 1.1)
       tl.current = t
+      // dev: the timeline, for frame-by-frame checks (scripts seek it)
+      if (import.meta.env.DEV) (window as Window & { __kinetic?: gsap.core.Timeline }).__kinetic = t
     },
     { scope: root },
   )
@@ -395,8 +440,28 @@ export default function Kinetic({ audio, sound: startWithSound, origin, urls, on
           data-card={i}
           className="k-card"
           data-bg={card.bg}
+          data-group={card.group ? '' : undefined}
+          style={card.ink ? ({ '--k-text': card.ink } as CSSProperties) : undefined}
           aria-hidden="true"
         >
+          {card.group && (
+            <div className="k-group">
+              {card.group.keys.map((k, j) => {
+                const mid = (card.group!.keys.length - 1) / 2
+                return (
+                  <img
+                    key={k}
+                    className="k-group-img"
+                    data-out={k === card.group!.out || undefined}
+                    data-side={Math.sign(j - mid)}
+                    src={u(PHOTOS[k].src)}
+                    alt=""
+                    style={{ left: `${50 + (j - mid) * 12}vw` }}
+                  />
+                )
+              })}
+            </div>
+          )}
           {card.photo?.mode === 'behind' && (
             <div className="k-photo" data-full={card.photo.full || undefined}>
               <img src={u(PHOTOS[card.photo.keys[0]].src)} alt="" />
@@ -458,6 +523,11 @@ export default function Kinetic({ audio, sound: startWithSound, origin, urls, on
                       ))
                     : text}
                   {ch.fx === 'type' && <span className="k-caret" />}
+                  {ch.fx === 'water' && (
+                    <span className="k-water" aria-hidden="true">
+                      {text}
+                    </span>
+                  )}
                 </span>
               )
             })}
@@ -468,6 +538,7 @@ export default function Kinetic({ audio, sound: startWithSound, origin, urls, on
             )}
           </div>
 
+          {card.flood && <div className="k-flood" />}
           {card.slash !== undefined && (
             <>
               <span className="k-slash k-slash-1" />

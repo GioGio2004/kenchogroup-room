@@ -422,6 +422,38 @@
       {
         "src": "/media/audio/room/replay-intro-3.mp3"
       }
+    ],
+    "page-hello": [
+      {
+        "src": "/media/audio/room/page-hello-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/page-hello-2.mp3"
+      }
+    ],
+    "page-pieces": [
+      {
+        "src": "/media/audio/room/page-pieces-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/page-pieces-2.mp3"
+      }
+    ],
+    "page-finishes": [
+      {
+        "src": "/media/audio/room/page-finishes-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/page-finishes-2.mp3"
+      }
+    ],
+    "page-room": [
+      {
+        "src": "/media/audio/room/page-room-1.mp3"
+      },
+      {
+        "src": "/media/audio/room/page-room-2.mp3"
+      }
     ]
   },
   "sfx": {

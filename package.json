@@ -8,7 +8,10 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "voice": "node --env-file=.env.local scripts/generate-voice.mjs"
+    "voice": "node --env-file=.env.local scripts/generate-voice.mjs",
+    "page:shots": "node scripts/page-shots.mjs",
+    "page:check": "node scripts/page-check.mjs",
+    "opening:frames": "node scripts/opening-frames.mjs"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.3.0",
@@ -31,6 +34,7 @@
     "@types/three": "^0.187.0",
     "@vitejs/plugin-react": "^6.1.2",
     "oxlint": "^1.89.0",
+    "puppeteer-core": "^24.43.1",
     "typescript": "~7.0.2",
     "vite": "^8.3.5"
   }

@@ -17,6 +17,12 @@ opened by a narrator (see `docs/narration.md`). Rooms are Higgsfield video
 "stations" chained by matching last/first frames; cabinet fronts recolour live
 via a WebGL shader + mask on a photoreal still.
 
+On branch `claude/mono` (forked from `main`) there is one opening: the narrated
+kinetic one, black and cream (`#f3eee3`), with an orange (`#c5603d`) Start
+button on the intro. After it comes a retro one-pager (`src/page`, see
+`docs/page.md`) with production's navbar. The hand-drawn room is the footer:
+the whole page lifts off it like a lid.
+
 ## Rules
 - Phones first (~80% of traffic). Every heavy asset needs a phone budget.
 - Motion glides, never snaps: long inOut/out eases (`--ease-glide`).

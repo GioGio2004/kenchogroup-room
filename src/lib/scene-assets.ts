@@ -15,6 +15,7 @@ export const PHOTOS = {
   oakWall: { src: '/media/frames/oak-wall.webp', ratio: 3 / 2, alt: 'Oak kitchen wall' },
   corridor: { src: '/media/frames/corridor.webp', ratio: 3 / 2, alt: 'Walnut panelled corridor' },
   bedroom: { src: '/media/frames/bedroom.webp', ratio: 4 / 3, alt: 'Walnut panelled bedroom' },
+  graphite: { src: '/media/photos/oak-graphite.webp', ratio: 926 / 616, alt: 'Graphite kitchen under oak wall cabinets' },
 } as const
 
 export type PhotoKey = keyof typeof PHOTOS

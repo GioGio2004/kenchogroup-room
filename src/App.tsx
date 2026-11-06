@@ -5,32 +5,35 @@ import { narrator } from '@/lib/narrator'
 import { preload } from '@/lib/preload'
 import { PHOTO_KEYS, PHOTOS } from '@/lib/scene-assets'
 import { tracker } from '@/lib/tracker'
-import Intro, { type Origin, type Path } from '@/scenes/opening/Intro'
+import Intro, { type Origin } from '@/scenes/opening/Intro'
 import Kinetic from '@/scenes/opening/Kinetic'
-import Sketchbook from '@/scenes/opening/Sketchbook'
 
-// three.js is heavy: the room loads in its own chunk, fetched as the opening starts.
-const loadRoom = () => import('@/scenes/room/Room')
-const Room = lazy(loadRoom)
+// The page (and, inside it, the room's three.js) come in their own chunks,
+// fetched while the opening plays.
+const loadPage = () => import('@/page/Page')
+const Page = lazy(loadPage)
 
 const ASSETS = [NARRATION.src, ...PHOTO_KEYS.map((k) => PHOTOS[k].src)]
 /* The wordmark gets its moment even on a fast connection. */
 const MIN_LOADER_MS = 3000
 
-type Phase = 'loading' | 'ready' | 'leaving' | 'playing' | 'room'
+type Phase = 'loading' | 'ready' | 'leaving' | 'playing' | 'page'
 
-/* Been through an opening before: a reload goes straight back to that room.
+/* Been through the opening before: a reload goes straight to the page.
    ?intro in the address brings the opening back. */
 const seen = tracker.get()
-const RESUME = seen.introSeen && seen.path !== null && !new URLSearchParams(location.search).has('intro')
+const RESUME = seen.introSeen && !new URLSearchParams(location.search).has('intro')
 
+/*
+ * The opening (the narrator and the kinetic type, on cream with an orange
+ * wordmark), then the page in colour, with the hand-drawn room at the bottom.
+ */
 export default function App() {
-  const [phase, setPhase] = useState<Phase>(RESUME ? 'room' : 'loading')
+  const [phase, setPhase] = useState<Phase>(RESUME ? 'page' : 'loading')
   const [progress, setProgress] = useState(0)
   const [urls, setUrls] = useState<Record<string, string>>({})
   const [sound, setSound] = useState(RESUME ? (seen.voice ?? true) : true)
   const [origin, setOrigin] = useState<Origin>({ x: 0, y: 0, r: 160 })
-  const [path, setPath] = useState<Path>(RESUME && seen.path ? seen.path : 'classic')
   const [kineticGone, setKineticGone] = useState(RESUME)
   const [introKey, setIntroKey] = useState(0)
   const audio = useRef<HTMLAudioElement>(null)
@@ -38,7 +41,7 @@ export default function App() {
   useEffect(() => startSmoothScroll(), [])
 
   useEffect(() => {
-    // resuming in the room: nothing to load for an opening
+    // resuming on the page: nothing to load for an opening
     if (RESUME) return
     const run = { alive: true }
     const started = performance.now()
@@ -56,26 +59,25 @@ export default function App() {
   }, [])
 
   // Audio must start inside the click itself, or browsers block it.
-  const start = (withSound: boolean, from: Origin, chosen: Path) => {
-    // the opening has the stage: no room line talks over it
+  const start = (withSound: boolean, from: Origin) => {
+    // the opening has the stage: no other line talks over it
     narrator.stop()
     setSound(withSound)
     setOrigin(from)
-    setPath(chosen)
-    tracker.set({ path: chosen })
+    tracker.set({ path: 'classic' })
     const a = audio.current
     if (withSound && a) {
       a.currentTime = 0
       void a.play().catch(() => setSound(false))
     }
     setPhase('leaving')
-    void loadRoom()
+    void loadPage()
   }
 
-  // The opening is over: the room wipes in over it, then the opening goes.
-  const toRoom = () => {
+  // The opening is over: the page bursts in over it, then the opening goes.
+  const toPage = () => {
     tracker.set({ introSeen: true })
-    setPhase('room')
+    setPhase('page')
     window.setTimeout(() => {
       audio.current?.pause()
       setKineticGone(true)
@@ -84,6 +86,8 @@ export default function App() {
 
   const replay = () => {
     audio.current?.pause()
+    narrator.stop()
+    window.scrollTo(0, 0)
     setKineticGone(false)
     setIntroKey((k) => k + 1)
     setPhase('loading')
@@ -91,36 +95,25 @@ export default function App() {
   }
 
   return (
-    <main className="app">
+    <main className="app" data-phase={phase}>
       <audio ref={audio} src={urls[NARRATION.src] ?? NARRATION.src} preload="auto" />
-      {(phase === 'leaving' || phase === 'playing' || phase === 'room') &&
-        !kineticGone &&
-        (path === 'sketch' ? (
-          <Sketchbook audio={audio} sound={sound} origin={origin} urls={urls} onFinish={toRoom} />
-        ) : (
-          <Kinetic audio={audio} sound={sound} origin={origin} urls={urls} onFinish={toRoom} />
-        ))}
-      {phase === 'room' && (
+      {(phase === 'leaving' || phase === 'playing' || phase === 'page') && !kineticGone && (
+        <Kinetic audio={audio} sound={sound} origin={origin} urls={urls} onFinish={toPage} />
+      )}
+      {phase === 'page' && (
         <Suspense
           fallback={
-            // after a refresh the room's 3D chunk is still on its way: hold the wordmark
-            <p className="resume-mark" data-look={path === 'sketch' ? 'sketch' : 'real'} aria-label="Kencho Group">
+            // after a refresh the page's chunk is still on its way: hold the wordmark
+            <p className="resume-mark" aria-label="Kencho Group">
               KENCHO <span>GROUP</span>
             </p>
           }
         >
-          <Room onReplay={replay} sound={sound} look={path === 'sketch' ? 'sketch' : 'real'} />
+          <Page sound={sound} onSound={setSound} onReplay={replay} />
         </Suspense>
       )}
       {(phase === 'loading' || phase === 'ready' || phase === 'leaving') && (
-        <Intro
-          key={introKey}
-          progress={progress}
-          ready={phase !== 'loading'}
-          leaving={phase === 'leaving'}
-          onStart={start}
-          onLeft={() => setPhase('playing')}
-        />
+        <Intro key={introKey} progress={progress} ready={phase !== 'loading'} leaving={phase === 'leaving'} onStart={start} onLeft={() => setPhase('playing')} />
       )}
     </main>
   )

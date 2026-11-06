@@ -1,0 +1,769 @@
+
+/* ------------------------------------------------------------------
+ * The page: a seventies interior on cream paper. Inter, set tight, at full
+ * softness for the voice, Inter for the facts, Caveat for the margin
+ * notes, mono for the draughtsman's numbers.
+ * ---------------------------------------------------------------- */
+html:has(.page) {
+  background: #f3eee3;
+  color-scheme: light;
+}
+
+.page {
+  --paper: #f3eee3;
+  --cream: #efe5d3;
+  --cream-deep: #e8d7b8;
+  --ink: #1f1c18;
+  --ink-soft: rgb(31 28 24 / 0.66);
+  --rule: rgb(31 28 24 / 0.16);
+  --terra: #c5603d;
+  --mustard: #dca443;
+  --orange: #e3803c;
+  --sage: #8e9b85;
+  --forest: #3e5848;
+  --teal: #5f8a84;
+  --rose: #e7ab9a;
+  --display: var(--font-sans);
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --pad: clamp(20px, 5vw, 96px);
+  position: relative;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+.page :is(h1, h2, h3, p, ul, ol, dl, figure) {
+  margin: 0;
+}
+.page img {
+  display: block;
+  max-width: none;
+}
+.page :where(button) {
+  font: inherit;
+  color: inherit;
+}
+.page :focus-visible {
+  outline: 2px solid var(--terra);
+  outline-offset: 4px;
+}
+
+/* headings: Inter, set tight and upright; lines balanced so nothing breaks badly */
+.page :is(h1, h2, .mf-text, .piece-title, .pieces-end, .outro-mark) {
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: -0.045em;
+}
+.page .mf-text {
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+.page :is(h2, h3, .mf-text) {
+  text-wrap: balance;
+}
+.page p {
+  text-wrap: pretty;
+}
+.page :is(h1, h2) em {
+  font-style: normal;
+  color: var(--terra);
+}
+
+.page-main {
+  position: relative;
+  z-index: 2;
+  background: var(--paper);
+}
+
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font: 500 12px/1 var(--mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.kicker span {
+  color: var(--terra);
+}
+
+/* SplitText's masked words and chars */
+.pc {
+  display: inline-block;
+}
+
+/* ---- buttons: pills with a printed offset shadow ------------------- */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 24px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  font: 600 15px/1 var(--font-sans);
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 0 0 var(--ink);
+  transition: transform 0.35s var(--ease-out), box-shadow 0.35s var(--ease-out), background-color 0.3s, color 0.3s;
+}
+.btn:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+.btn:active {
+  transform: translate(0, 0);
+  box-shadow: 0 0 0 var(--ink);
+}
+.btn--ink {
+  background: var(--ink);
+  color: var(--paper);
+}
+.btn--ink:hover {
+  background: var(--forest);
+}
+.btn--terra {
+  background: var(--terra);
+  color: var(--paper);
+}
+.btn--line {
+  background: transparent;
+  color: var(--ink);
+}
+.btn--line:hover {
+  background: var(--mustard);
+}
+.btn--paper {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------------------
+ * Hero: three lines and a seventies arch, with room to breathe
+ * ---------------------------------------------------------------- */
+.hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) min(40vw, 70svh);
+  align-items: end;
+  gap: 6vw;
+  min-height: 100svh;
+  padding: clamp(150px, 22vh, 240px) var(--pad) 0;
+  overflow: clip;
+}
+.hero-copy {
+  display: grid;
+  gap: clamp(28px, 4.5vh, 48px);
+  align-self: center;
+  padding-bottom: 6vh;
+}
+.hero-title {
+  display: grid;
+  font: 400 clamp(56px, 8.6vw, 170px) / 0.88 var(--display);
+  letter-spacing: -0.015em;
+  pointer-events: none;
+}
+.hero-line {
+  display: block;
+  width: max-content;
+  white-space: nowrap;
+  /* room for descenders, then a mask */
+  padding: 0 0.12em 0.14em;
+  margin: 0 -0.12em -0.14em;
+  overflow: clip;
+}
+.hero-line[data-i="1"] {
+  margin-left: 0.5em;
+}
+.hero-line--em {
+  margin-left: 1em;
+  color: var(--terra);
+}
+.hc {
+  display: inline-block;
+}
+.hero-lede {
+  max-width: 25em;
+  font: 450 clamp(16px, 1.2vw, 19px) / 1.55 var(--font-sans);
+  color: var(--ink-soft);
+}
+.hero-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.hero-sun {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1.08;
+  transform-origin: 50% 100%;
+}
+.hero-window {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  translate: -50% 0;
+  width: 78%;
+  height: 92%;
+  border-radius: 999px 999px 0 0;
+  transform-origin: 50% 100%;
+  overflow: hidden;
+  margin: 0;
+  background: var(--ink);
+}
+.hero-window img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 42% 50%;
+}
+
+@media (max-width: 900px), (max-aspect-ratio: 4/5) {
+  .hero {
+    grid-template-columns: none;
+    gap: 40px;
+    padding: 112px 20px 0;
+  }
+  .hero-copy {
+    padding-bottom: 0;
+  }
+  .hero-title {
+    font-size: 16.4vw;
+  }
+  .hero-line[data-i="1"] {
+    margin-left: 0.36em;
+  }
+  .hero-line--em {
+    margin-left: 0.7em;
+  }
+  .hero-sun {
+    justify-self: center;
+    width: min(84vw, 44svh);
+  }
+  .hero-ctas .btn {
+    flex: 1;
+    padding: 0 16px;
+  }
+}
+
+/* ------------------------------------------------------------------
+ * (01) Manifesto: one sentence, and a lot of paper
+ * ---------------------------------------------------------------- */
+.manifesto {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  min-height: 100svh;
+  padding: 0 var(--pad);
+  text-align: center;
+}
+.mf-kicker {
+  justify-content: center;
+  margin-bottom: clamp(32px, 6vh, 64px);
+}
+.mf-text {
+  max-width: 15em;
+  font: 400 clamp(34px, 4.8vw, 88px) / 1.1 var(--display);
+  letter-spacing: -0.01em;
+}
+.mf-text em {
+  font-style: normal;
+  color: var(--terra);
+}
+
+/* ------------------------------------------------------------------
+ * (02) Pieces: a pinned row of coloured cards
+ * ---------------------------------------------------------------- */
+.pieces {
+  position: relative;
+  height: 100svh;
+  overflow: clip;
+  background: var(--paper);
+}
+.pieces-track {
+  display: flex;
+  align-items: center;
+  gap: clamp(20px, 3vw, 56px);
+  width: max-content;
+  height: 100%;
+  padding: 40px var(--pad) 0;
+  will-change: transform;
+}
+.pieces-intro {
+  flex: none;
+  display: grid;
+  gap: 28px;
+  width: min(34vw, 520px);
+  padding-right: 4vw;
+}
+.pieces-title {
+  font: 400 clamp(44px, 5.4vw, 100px) / 0.92 var(--display);
+  letter-spacing: -0.015em;
+}
+.pieces-lede {
+  max-width: 20em;
+  font: 450 clamp(16px, 1.2vw, 19px) / 1.55 var(--font-sans);
+  color: var(--ink-soft);
+}
+
+.piece {
+  --bg: var(--terra);
+  --fg: var(--paper);
+  position: relative;
+  flex: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3vw;
+  width: min(70vw, 1060px);
+  height: min(68svh, 680px);
+  padding: clamp(28px, 3.6vw, 60px);
+  border-radius: 32px;
+  background: var(--bg);
+  color: var(--fg);
+  overflow: hidden;
+}
+.piece-copy {
+  align-self: end;
+  display: grid;
+  gap: 16px;
+  max-width: 26em;
+}
+.piece-n {
+  font: 600 12px/1 var(--mono);
+  letter-spacing: 0.14em;
+  opacity: 0.7;
+}
+.piece-title {
+  font: 400 clamp(40px, 4.6vw, 84px) / 0.92 var(--display);
+  letter-spacing: -0.015em;
+}
+.piece-text {
+  max-width: 22em;
+  font: 450 clamp(15px, 1.1vw, 18px) / 1.5 var(--font-sans);
+  opacity: 0.85;
+}
+.piece-art {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+}
+.piece-photo {
+  width: 82%;
+  max-height: 100%;
+  aspect-ratio: 4 / 5;
+  margin: 0;
+  overflow: hidden;
+  background: var(--ink);
+}
+.piece-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.piece[data-shape="arch"] .piece-photo {
+  border-radius: 999px 999px 20px 20px;
+}
+.piece[data-shape="circle"] .piece-photo {
+  width: 90%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+.piece[data-shape="pill"] .piece-photo {
+  width: 60%;
+  aspect-ratio: 3 / 5;
+  border-radius: 999px;
+}
+.piece[data-shape="tab"] .piece-photo {
+  border-radius: 20px 160px 20px 160px;
+}
+.piece[data-shape="flower"] .piece-photo {
+  width: 94%;
+  aspect-ratio: 1;
+  clip-path: url(#clip-flower);
+}
+.piece[data-shape="round"] .piece-photo {
+  border-radius: 48px;
+  aspect-ratio: 1 / 1.08;
+}
+.pieces-end {
+  flex: none;
+  width: min(34vw, 520px);
+  padding-right: var(--pad);
+  font: 600 clamp(36px, 4.2vw, 76px) / 1 var(--display);
+  letter-spacing: -0.01em;
+  color: var(--terra);
+}
+.pieces-hud {
+  position: absolute;
+  left: var(--pad);
+  right: var(--pad);
+  bottom: clamp(20px, 5vh, 48px);
+}
+.pieces-bar {
+  display: block;
+  height: 1px;
+  background: var(--rule);
+}
+.pieces-bar i {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+@media (max-width: 760px), (max-aspect-ratio: 4/5) {
+  .pieces-track {
+    padding-top: 64px;
+  }
+  .pieces-intro {
+    width: 76vw;
+  }
+  .piece {
+    grid-template-columns: none;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 20px;
+    width: 82vw;
+    height: min(72svh, 620px);
+    padding: 24px;
+    border-radius: 26px;
+  }
+  .piece-art {
+    order: -1;
+  }
+  .piece-copy {
+    gap: 10px;
+  }
+  .piece-title {
+    font-size: clamp(36px, 10vw, 52px);
+  }
+  .piece-text {
+    font-size: 15px;
+  }
+  .pieces-end {
+    width: 64vw;
+  }
+}
+
+/* ------------------------------------------------------------------
+ * (03) Palettes: five kitchens reduced to stripes, a stripe wall
+ * ---------------------------------------------------------------- */
+.pal {
+  display: grid;
+  gap: clamp(36px, 7vh, 80px);
+  padding: clamp(140px, 22vh, 260px) var(--pad) clamp(120px, 18vh, 220px);
+}
+.pal-head {
+  display: grid;
+  gap: 22px;
+}
+.pal-title {
+  font: 400 clamp(44px, 5.4vw, 100px) / 0.92 var(--display);
+  letter-spacing: -0.015em;
+}
+.pal-row {
+  display: flex;
+  gap: clamp(8px, 1vw, 16px);
+  height: min(66svh, 640px);
+}
+.pal-col {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: clamp(18px, 2vw, 30px);
+  overflow: hidden;
+  cursor: pointer;
+  /* a hairline, so a pale palette still reads against the paper */
+  box-shadow: inset 0 0 0 1px rgb(31 28 24 / 0.1);
+  transition: flex-grow 0.9s var(--ease-out);
+}
+.pal-band:first-child {
+  box-shadow: inset 0 1px 0 rgb(31 28 24 / 0.1);
+}
+.pal-col[data-open] {
+  flex-grow: 3.6;
+}
+.pal-band {
+  display: block;
+  flex: var(--w) 1 0;
+  min-height: 0;
+}
+.pal-name {
+  position: absolute;
+  left: clamp(14px, 1.6vw, 26px);
+  bottom: clamp(16px, 2vw, 28px);
+  color: var(--paper);
+  font: 600 clamp(22px, 2.4vw, 42px) / 1 var(--display);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  transform-origin: 0 100%;
+  transform: translate(0.9em, 0) rotate(-90deg) scale(0.55);
+  opacity: 0.8;
+  transition: transform 0.9s var(--ease-out), opacity 0.6s;
+}
+.pal-col[data-light] .pal-name {
+  color: var(--ink);
+}
+.pal-col[data-open] .pal-name {
+  transform: none;
+  opacity: 1;
+}
+.pal-picked {
+  position: absolute;
+  top: clamp(14px, 1.6vw, 24px);
+  left: clamp(14px, 1.6vw, 24px);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font: 600 11px/1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.5s 0.2s;
+}
+.pal-picked::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--terra);
+}
+.pal-col[data-open] .pal-picked {
+  opacity: 1;
+}
+.pal-col:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}
+
+@media (max-width: 760px), (max-aspect-ratio: 4/5) {
+  .pal {
+    padding: 120px 20px 96px;
+  }
+  /* phones: the stripe wall turns on its side */
+  .pal-row {
+    flex-direction: column;
+    height: 72svh;
+  }
+  .pal-col {
+    flex-direction: row;
+  }
+  .pal-col[data-open] {
+    flex-grow: 3.4;
+  }
+  .pal-name {
+    transform: scale(0.6);
+  }
+}
+
+/* ------------------------------------------------------------------
+ * (06) The outro: the last of the page, and the lip of the lid
+ * ---------------------------------------------------------------- */
+.page-main {
+  /* the lid: rounded at the bottom, casting its shadow on the room */
+  border-radius: 0 0 clamp(28px, 4vw, 64px) clamp(28px, 4vw, 64px);
+  overflow: clip;
+  box-shadow: 0 30px 80px -10px rgb(31 28 24 / 0.5);
+}
+.outro {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: clamp(32px, 6vh, 72px) 6vw;
+  padding: clamp(140px, 24vh, 280px) var(--pad) 0;
+  background: var(--terra);
+  color: #ffffff;
+}
+.outro-head {
+  display: contents;
+}
+.outro-head .kicker {
+  grid-column: 1 / -1;
+  margin-bottom: calc(clamp(32px, 6vh, 72px) * -0.5);
+}
+.outro-title {
+  font: 400 clamp(56px, 8.4vw, 160px) / 0.88 var(--display);
+  letter-spacing: -0.015em;
+}
+.outro-lede {
+  max-width: 19em;
+  padding-bottom: 0.6em;
+  font: 450 clamp(16px, 1.2vw, 19px) / 1.55 var(--font-sans);
+  color: rgb(255 255 255 / 0.85);
+}
+/* everything in white on the orange */
+.outro .kicker span,
+.page .outro h2 em {
+  color: #ffffff;
+}
+.outro .kicker span {
+  opacity: 0.7;
+}
+.outro-mark {
+  grid-column: 1 / -1;
+  margin-top: clamp(40px, 10vh, 120px);
+  margin-bottom: clamp(24px, 5vh, 64px);
+  display: flex;
+  justify-content: space-between;
+  overflow: hidden;
+  padding-top: 0.08em;
+  font: 400 clamp(80px, 19vw, 360px) / 0.8 var(--display);
+  letter-spacing: -0.015em;
+}
+.outro-letter {
+  display: inline-block;
+  color: #ffffff;
+  transform-origin: 50% 100%;
+}
+@media (max-width: 760px) {
+  .outro {
+    grid-template-columns: none;
+    align-items: start;
+  }
+}
+
+/* ------------------------------------------------------------------
+ * (07) The footer is the room: underneath everything, uncovered as the
+ * page lifts off it. A rail along the top does the footer's job.
+ * ---------------------------------------------------------------- */
+.rf {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  height: 100svh;
+  overflow: hidden;
+  background: #f4f2ec;
+  isolation: isolate;
+}
+.rf-lift {
+  position: absolute;
+  inset: 0;
+}
+.rf-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  background: var(--ink);
+  opacity: 0.6;
+  pointer-events: none;
+}
+.rf-wait {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font: 600 30px var(--display);
+  color: var(--ink-soft);
+  animation: wait 1.6s ease-in-out infinite;
+}
+@keyframes wait {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* ------------------------------------------------------------------
+ * The cursor, the grain, the burst of colour
+ * ---------------------------------------------------------------- */
+html[data-cursor] .page,
+html[data-cursor] .page * {
+  cursor: none;
+}
+html[data-cursor] .rf-lift,
+html[data-cursor] .rf-lift * {
+  cursor: auto;
+}
+.cur-dot,
+.cur-ring {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 300;
+  border-radius: 50%;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.cur-dot {
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  background: var(--ink);
+  box-shadow: 0 0 0 1.5px rgb(244 239 228 / 0.7);
+}
+.cur-ring {
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border: 1px solid var(--ink);
+  box-shadow: 0 0 0 1px rgb(244 239 228 / 0.5);
+  transition: width 0.45s var(--ease-out), height 0.45s var(--ease-out), margin 0.45s var(--ease-out), background-color 0.3s, opacity 0.3s;
+}
+.cur-ring[data-link] {
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  background: rgb(220 164 67 / 0.25);
+}
+html:is([data-cursor-room], [data-cursor-out]) :is(.cur-ring, .cur-dot),
+html:not([data-cursor-moved]) :is(.cur-ring, .cur-dot) {
+  opacity: 0;
+}
+
+.page-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  pointer-events: none;
+  opacity: 0.32;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.43 0 0 0 0 0.4 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.burst {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  overflow: hidden;
+  pointer-events: none;
+}
+.burst i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 300vmax;
+  height: 300vmax;
+  margin: -150vmax 0 0 -150vmax;
+  border-radius: 50%;
+  transform: scale(0);
+}
+
+/* ---- reduced motion: no pins, no throws; everything simply there --- */
+@media (prefers-reduced-motion: reduce) {
+  .pieces {
+    height: auto;
+    overflow-x: auto;
+  }
+  .pieces-track {
+    height: auto;
+    padding-block: 14vh;
+  }
+  .pieces-hud {
+    display: none;
+  }
+}

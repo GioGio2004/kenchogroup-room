@@ -1,6 +1,6 @@
 /* ------------------------------------------------------------------
- * Kinetic typography opening — black and white, colour only in photos,
- * no glows
+ * Kinetic typography opening — black and cream, a few words in the
+ * seventies palette, no glows
  * ---------------------------------------------------------------- */
 .kinetic {
   position: fixed;
@@ -24,9 +24,8 @@
 }
 .k-card[data-bg="light"] {
   --k-text: #070708;
-  --k-bg: #f5f5f3;
+  --k-bg: #f3eee3;
 }
-
 /* A soft vignette on the dark cards */
 .k-card[data-bg="dark"]::after {
   content: "";
@@ -341,4 +340,83 @@
   .k-q-1 { left: 60%; top: -0.95em; font-size: 20vh; }
   .k-q-2 { display: none; }
   .k-q-3 { left: 12%; top: 135%; font-size: 11vh; }
+}
+
+/* ---- the odd one out: a row of our work in grey, one kitchen in colour ---- */
+.k-group {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.k-group-img {
+  position: absolute;
+  top: 40%;
+  width: 10vw;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  translate: -50% -50%;
+  filter: grayscale(1) brightness(0.72);
+  opacity: 0;
+}
+.k-group-img[data-out] {
+  z-index: 2;
+  filter: none;
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.5);
+}
+.k-card[data-group] .k-inner {
+  translate: 0 22vh;
+}
+
+/* ---- water: orange rising inside the outline, waves running ---------------- */
+.k-chunk[data-fx="water"] {
+  color: transparent;
+  -webkit-text-stroke: 2px var(--k-text);
+}
+.k-water {
+  position: absolute;
+  inset: 0;
+  color: transparent;
+  -webkit-text-stroke: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='400' viewBox='0 0 240 400' preserveAspectRatio='none'%3E%3Cpath d='M0 200 C 40 184 80 184 120 200 S 200 216 240 200 V400 H0 Z' fill='%23c5603d'/%3E%3C/svg%3E");
+  background-size: 240px 200%;
+  background-repeat: repeat-x;
+  background-position: 0px 0%;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* ---- the tide: an orange flood with a running wave on top ------------------ */
+.k-flood {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  height: 100%;
+  background: #c5603d;
+  pointer-events: none;
+}
+.k-flood::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% - 1px);
+  height: 56px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='56' viewBox='0 0 240 56' preserveAspectRatio='none'%3E%3Cpath d='M0 28 C 40 6 80 6 120 28 S 200 50 240 28 V56 H0 Z' fill='%23c5603d'/%3E%3C/svg%3E");
+  background-size: 240px 56px;
+  background-repeat: repeat-x;
+  animation: k-wave 0.8s linear infinite;
+}
+@keyframes k-wave {
+  to {
+    background-position: -240px 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .k-group-img {
+    width: 12.5vw;
+  }
 }

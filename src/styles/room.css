@@ -1133,3 +1133,15 @@
     animation: none;
   }
 }
+
+/* ---- embedded: the room as the page's last section ------------------ */
+.room[data-embedded] {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  touch-action: pan-y;
+}
+/* the page has its own header and menu */
+.room[data-embedded] :is(.room-header, .room-panel, .room-scrim) {
+  display: none;
+}

@@ -3,8 +3,9 @@ import type { PhotoKey } from '@/lib/scene-assets'
 /*
  * The kinetic-type score: the narration split into full-screen "cards".
  * A card hard-cuts in just before its first word; each chunk inside it
- * enters on its own first word with one of the effects below. The theme
- * and type are black and white; colour comes only from the photographs.
+ * enters on its own first word with one of the effects below. The cards
+ * are black and cream; the seventies palette is in the words of a few of
+ * them (UPHOLSTERED, the colours, DON'T WORRY, HOME) and in the orange tide.
  *
  * Word indices refer to the words of each line in narration.ts.
  */
@@ -25,6 +26,8 @@ export type Fx =
   | 'glitch' // sliced copies jitter, then lock
   | 'scatter' // letters drift apart ("space")
   | 'rise' // a line rising from a mask
+  | 'water' // hollow outline that fills with orange like rising water
+  | 'palette' // slams in, then each letter takes a colour of the palette
 
 export type Bg = 'dark' | 'light'
 
@@ -59,6 +62,12 @@ export interface Card {
   slash?: number
   /** how the card leaves */
   exit?: 'blur' | 'zoom' | 'cut'
+  /** a row of photos in grey; `out` (in colour) is pushed out of the group */
+  group?: { keys: PhotoKey[]; out: PhotoKey }
+  /** after the words: an orange tide rises and paints the whole screen */
+  flood?: boolean
+  /** the words in a colour of the palette (instead of black or cream) */
+  ink?: string
 }
 
 const c = (line: string, from: number, to: number, size: Size, fx: Fx, photo?: PhotoKey): Chunk => ({
@@ -96,9 +105,10 @@ export const CARDS: Card[] = [
     chunks: [c('other', 0, 1, 'md', 'smear'), c('other', 2, 2, 'xl', 'zoom'), c('other', 3, 5, 'sm', 'rise')],
     exit: 'zoom',
   },
-  // "Just nothing UPHOLSTERED." over the sofa, then slashed out
+  // "Just nothing UPHOLSTERED." in mustard over the sofa, then slashed out
   {
     bg: 'light',
+    ink: '#dca546',
     photo: { mode: 'behind', keys: ['sofa'] },
     chunks: [c('sofa', 0, 1, 'md', 'slam'), c('sofa', 2, 2, 'lg', 'glitch')],
     slash: 9.12,
@@ -114,24 +124,27 @@ export const CARDS: Card[] = [
     glyphs: true,
     chunks: [c('ask', 0, 0, 'md', 'focus'), c('ask', 1, 3, 'md', 'slam'), c('ask', 4, 5, 'lg', 'slam')],
   },
-  // "A kitchen?" — a photo card, a cursor, a click
+  // "A kitchen?" — a row of our work in grey; the kitchen, the only one in
+  // colour, is pushed out of the group
   {
     bg: 'dark',
-    cursor: true,
-    photo: { mode: 'card', keys: ['shelves'] },
+    group: { keys: ['wardrobe', 'mirror', 'corridor', 'shelves', 'bedroom', 'oakWall', 'sofa'], out: 'shelves' },
     chunks: [c('perhaps', 0, 1, 'xl', 'slam')],
   },
-  // "Or perhaps… a different / COLOUR?"
+  // "Or perhaps… a different / COLOUR?" — the word fills with orange like
+  // rising water, then the tide paints the whole screen
   {
     bg: 'light',
-    chunks: [c('perhaps', 2, 3, 'md', 'focus'), c('perhaps', 4, 5, 'md', 'rise'), c('perhaps', 6, 6, 'xl', 'outline')],
+    flood: true,
+    chunks: [c('perhaps', 2, 3, 'md', 'focus'), c('perhaps', 4, 5, 'md', 'rise'), c('perhaps', 6, 6, 'xl', 'water')],
   },
-  // The colours, each shown by its own kitchen in full colour
-  { bg: 'dark', photo: { mode: 'behind', keys: ['forest'], full: true }, chunks: [c('colours', 0, 1, 'lg', 'stretch')] },
-  { bg: 'dark', photo: { mode: 'behind', keys: ['white'], full: true }, chunks: [c('colours', 2, 3, 'lg', 'slit')] },
+  // The colours, each over its own kitchen and written in its own colour
+  { bg: 'dark', ink: '#86b394', photo: { mode: 'behind', keys: ['forest'], full: true }, chunks: [c('colours', 0, 1, 'lg', 'stretch')] },
+  { bg: 'dark', ink: '#f4ead7', photo: { mode: 'behind', keys: ['white'], full: true }, chunks: [c('colours', 2, 3, 'lg', 'slit')] },
   {
     bg: 'dark',
-    photo: { mode: 'behind', keys: ['greige'], full: true },
+    ink: '#d3c8b6',
+    photo: { mode: 'behind', keys: ['graphite'], full: true },
     chunks: [c('colours', 4, 5, 'md', 'rise'), c('colours', 6, 6, 'xl', 'slam')],
   },
   // "We've got PLENTY to choose from." — photos everywhere
@@ -140,8 +153,8 @@ export const CARDS: Card[] = [
     photo: { mode: 'scatter', keys: ['kitchen', 'mirror', 'oakWall', 'corridor', 'bedroom', 'wardrobe', 'shelves'] },
     chunks: [c('plenty', 0, 1, 'md', 'rise'), c('plenty', 2, 2, 'xxl', 'slit'), c('plenty', 3, 5, 'md', 'smear')],
   },
-  // "Don't worry." — calm
-  { bg: 'light', chunks: [c('plenty', 6, 7, 'lg', 'focus')] },
+  // "Don't worry." — calm, in green
+  { bg: 'light', ink: '#3e5848', chunks: [c('plenty', 6, 7, 'lg', 'focus')] },
   // "All right, all right…" typed
   { bg: 'dark', chunks: [c('space', 0, 1, 'lg', 'type'), c('space', 2, 3, 'lg', 'type')] },
   // "I'll give you some SPACE." — the letters drift apart
@@ -152,6 +165,6 @@ export const CARDS: Card[] = [
     photo: { mode: 'strip', keys: ['station', 'wardrobe', 'oakWall', 'bedroom', 'shelves', 'corridor', 'kitchen'] },
     chunks: [c('home', 0, 2, 'md', 'smear'), c('home', 3, 3, 'xl', 'slam')],
   },
-  // "See what feels like HOME."
-  { bg: 'dark', chunks: [c('home', 4, 7, 'md', 'rise'), c('home', 8, 8, 'xxl', 'slam')] },
+  // "See what feels like HOME." — and HOME takes the palette, letter by letter
+  { bg: 'dark', chunks: [c('home', 4, 7, 'md', 'rise'), c('home', 8, 8, 'xxl', 'palette')] },
 ]

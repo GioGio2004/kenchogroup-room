@@ -171,7 +171,12 @@
       "[playfully] Welcome back. I didn't touch anything.",
       "There you are. Showing someone? [laughs] Tell them I said hi."
     ],
-    "replay-intro": ["Again? [chuckles] Okay, from the top.", "[playfully] An encore? I'm flattered.", "You liked that, huh? Here we go."]
+    "replay-intro": ["Again? [chuckles] Okay, from the top.", "[playfully] An encore? I'm flattered.", "You liked that, huh? Here we go."],
+
+    "page-hello": ["There we go. [softly] Now for a little colour.", "Better. Much better. [warmly] Have a scroll."],
+    "page-pieces": ["Six things we make. All in wood, all made to measure.", "Kitchens, wardrobes, whole walls. [softly] Take your time."],
+    "page-finishes": ["Go on, pick one. You can always change your mind.", "[playfully] Pick a colour. I promise I won't judge."],
+    "page-room": ["Keep going. [softly] The best part is underneath.", "Lift the page. There's a room under there, and it's yours."]
   },
   "sfx": {
     "bell": { "text": "A single bright brass service bell ding on a counter, short and clean, dry room", "duration": 1.5, "promptInfluence": 0.6 },

@@ -27,3 +27,6 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Headless screenshots (scripts/page-shots.mjs, page-check.mjs)
+.shots/
