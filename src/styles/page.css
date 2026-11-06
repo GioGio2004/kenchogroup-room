@@ -587,7 +587,7 @@ html:has(.page) {
   grid-template-columns: 1fr auto;
   align-items: end;
   gap: clamp(32px, 6vh, 72px) 6vw;
-  padding: clamp(140px, 24vh, 280px) var(--pad) 0;
+  padding: clamp(140px, 24vh, 280px) var(--pad) clamp(56px, 10vh, 120px);
   background: var(--terra);
   color: #ffffff;
 }
@@ -619,7 +619,6 @@ html:has(.page) {
 .outro-mark {
   grid-column: 1 / -1;
   margin-top: clamp(40px, 10vh, 120px);
-  margin-bottom: clamp(24px, 5vh, 64px);
   display: flex;
   justify-content: space-between;
   overflow: hidden;
