@@ -66,6 +66,14 @@ Start the dev server first (`room-dev`).
 
 Last run (phone, headless): average 59 fps, median frame 16.7 ms; no console errors.
 
+## The room's controls
+
+- No paper halos anywhere (room or navbar): text never glows over the drawing.
+- Controls sit on a paper panel along the bottom: the stops in the room (phones), and each close-up's panel (all screens). On wide screens a close-up's panel is one row: back, finish, camera angles, next step. On phones and narrow screens it stacks. The camera centres the picture in the space the panels leave free (`setViewOffset`, `live.sheet`, `live.side`).
+- The finishes have a popup of their own, opened from the panel's Finish row. It is terracotta and cream like the menu, with the menu's Close button. Phones get it across the bottom, wide screens bottom left. Picks apply live, and the kitchen glides clear of it.
+- Labels on the drawing (a part's material, a photo's caption) are terracotta tags; on touch, a material tag has its own close button. The hint is a paper tag.
+- Nothing in the room is centred with the CSS `translate` property. iOS Safari can drop it beside a `transform` transition, which once pushed the kitchen bar half off screen.
+
 ## Phones: memory
 
 iOS Safari kills a tab that holds too much layer memory. It reloads the tab, and if that crashes too it shows "A problem repeatedly occurred". Layers are costed at width x height x 3² x 4 bytes on a 3x iPhone, and WebKit only tiles layers over 2000 px.

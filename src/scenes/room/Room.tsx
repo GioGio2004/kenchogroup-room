@@ -64,12 +64,13 @@ const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, 
  * looks at, on desktop and on phones (narrower, so a little further back).
  */
 type Pose = { pos: V3; look: V3 }
-const ANGLES: Array<{ id: string; label: string; desk: Pose; phone: Pose }> = [
-  { id: 'front', label: 'Front', desk: { pos: [-1.95, 1.85, 2], look: [-1.95, 1.15, -3.3] }, phone: { pos: [-1.95, 1.8, 1.5], look: [-1.95, 1.05, -3.4] } },
-  { id: 'left', label: 'Left side', desk: { pos: [-3.4, 1.62, 1.2], look: [-1.4, 1.0, -2.6] }, phone: { pos: [-3.4, 1.62, 1.8], look: [-1.5, 1.0, -2.6] } },
-  { id: 'right', label: 'Right side', desk: { pos: [0.95, 1.6, 0.1], look: [-2.3, 1.0, -2.5] }, phone: { pos: [0.9, 1.6, 0.8], look: [-2.2, 1.0, -2.4] } },
-  { id: 'above', label: 'From above', desk: { pos: [-1.7, 2.75, 0.6], look: [-1.75, 0.5, -2.2] }, phone: { pos: [-1.75, 2.75, 1.2], look: [-1.75, 0.4, -2.3] } },
-  { id: 'detail', label: 'Close up', desk: { pos: [-0.3, 1.35, 0.25], look: [-1.8, 0.95, -1.4] }, phone: { pos: [-0.5, 1.4, 0.6], look: [-1.9, 0.95, -1.4] } },
+/* (`short`: the phone sheet's label, one word so all five fit on one row) */
+const ANGLES: Array<{ id: string; label: string; short: string; desk: Pose; phone: Pose }> = [
+  { id: 'front', label: 'Front', short: 'Front', desk: { pos: [-1.95, 1.85, 2], look: [-1.95, 1.15, -3.3] }, phone: { pos: [-1.95, 1.8, 1.5], look: [-1.95, 1.05, -3.4] } },
+  { id: 'left', label: 'Left side', short: 'Left', desk: { pos: [-3.4, 1.62, 1.2], look: [-1.4, 1.0, -2.6] }, phone: { pos: [-3.4, 1.62, 1.8], look: [-1.5, 1.0, -2.6] } },
+  { id: 'right', label: 'Right side', short: 'Right', desk: { pos: [0.95, 1.6, 0.1], look: [-2.3, 1.0, -2.5] }, phone: { pos: [0.9, 1.6, 0.8], look: [-2.2, 1.0, -2.4] } },
+  { id: 'above', label: 'From above', short: 'Above', desk: { pos: [-1.7, 2.75, 0.6], look: [-1.75, 0.5, -2.2] }, phone: { pos: [-1.75, 2.75, 1.2], look: [-1.75, 0.4, -2.3] } },
+  { id: 'detail', label: 'Close up', short: 'Detail', desk: { pos: [-0.3, 1.35, 0.25], look: [-1.8, 0.95, -1.4] }, phone: { pos: [-0.5, 1.4, 0.6], look: [-1.9, 0.95, -1.4] } },
 ]
 
 const isMobile = () => typeof window !== 'undefined' && (window.innerWidth / window.innerHeight < 0.85 || window.innerWidth < 640)
@@ -106,6 +107,10 @@ interface Live {
   look: Look
   /** phones: standing inside the room, the heading between stops */
   mobile: boolean
+  /** the height of the paper panel along the bottom (px); the frame centres above it */
+  sheet: number
+  /** desktop: the width of the finishes popup on the left (px); the frame centres beside it */
+  side: number
   yaw: number
   /** the kitchen close-up's camera angle (index into ANGLES) */
   angle: number
@@ -130,7 +135,8 @@ const NAV: NavItem[] = [
   { key: 'kitchen', anchor: 'kitchen', off: [-0.01, -0.14], n: '01', meta: 'The kitchen', cta: 'Design your kitchen', zone: 'kitchen' },
   { key: 'gallery', anchor: 'gallery', off: [0.04, 0.33], n: '02', meta: 'The gallery wall', cta: 'See our kitchens', zone: 'gallery' },
   { key: 'about', anchor: 'about', off: [0.03, -0.2], n: '03', meta: 'The workshop', cta: 'About us', zone: 'door' },
-  { key: 'contact', anchor: 'contact', off: [-0.01, 0.27], n: '04', meta: 'Your wall, your idea', cta: 'Contacts', zone: 'media', href: '/en/contact' },
+  // (above the TV wall, on plain wall: below it, the label landed on the rug)
+  { key: 'contact', anchor: 'contact', off: [0.02, -0.17], n: '04', meta: 'Your wall, your idea', cta: 'Contacts', zone: 'media', href: '/en/contact' },
 ]
 
 const NOTES: Array<{ key: string; anchor: string; off: [number, number]; part: NotePart; label: string }> = [
@@ -313,6 +319,8 @@ function Photos({ model, live, enabled, onHot, onPick }: { model: SketchModel; l
  */
 function Rig({ live }: { live: MutableRefObject<Live> }) {
   const cur = useRef(new THREE.Vector3(-0.1, 1.1, -1.6))
+  const lift = useRef({ x: 0, y: 0 })
+  const still = useMemo(() => prefersReducedMotion(), [])
   const v = useMemo(
     () => ({
       roomPos: new THREE.Vector3(),
@@ -338,6 +346,21 @@ function Rig({ live }: { live: MutableRefObject<Live> }) {
     if (Math.abs(cam.fov - fov) > 0.01) {
       cam.fov = fov
       cam.updateProjectionMatrix()
+    }
+    // The picture centres in the space the panels leave free: above the paper
+    // panel along the bottom, right of the finishes popup on desktop. It
+    // glides as they come and go (an off-centre lens: nothing tilts or distorts).
+    const want = { x: -L.side / 2, y: L.sheet / 2 }
+    const glide = still ? 1 : 1 - Math.pow(0.02, Math.min(dt, 0.1))
+    lift.current.x += (want.x - lift.current.x) * glide
+    lift.current.y += (want.y - lift.current.y) * glide
+    const ox = Math.round(lift.current.x)
+    const oy = Math.round(lift.current.y)
+    const sub = cam.view
+    if (ox === 0 && oy === 0) {
+      if (sub?.enabled) cam.clearViewOffset()
+    } else if (!sub?.enabled || sub.offsetX !== ox || sub.offsetY !== oy || sub.fullWidth !== size.width || sub.fullHeight !== size.height) {
+      cam.setViewOffset(size.width, size.height, ox, oy, size.width, size.height)
     }
     const { x, y } = L.look
     const a = 1 - L.arrive
@@ -426,7 +449,11 @@ function Projector({
     const W = size.width
     const H = size.height
     const L = live.current
-    const maxY = L.t > 0.5 ? H - (L.mobile ? 225 : 120) : H - 76
+    // clear of the navbar and the hint under it, the paper panel along the bottom and the finishes popup
+    const minY = L.mobile ? 124 : L.t > 0.5 ? 136 : 84
+    const maxY = L.sheet ? H - L.sheet - 12 : L.t > 0.5 ? H - 120 : H - 76
+    const minX = L.side + 16
+    const hide = L.mobile || L.t > 0.5
     ITEMS.forEach((it, i) => {
       const dot = dots.current[i]
       const label = labels.current[i]
@@ -435,14 +462,14 @@ function Projector({
       v.copy(model.anchors[it.anchor]).project(camera)
       const ax = ((v.x + 1) / 2) * W
       const ay = ((1 - v.y) / 2) * H
-      // (in a close-up, anything that would land under the bottom bar stays hidden)
-      const shown = v.z < 1 && ax > 0 && ax < W && ay > 0 && ay < (L.t > 0.5 ? maxY : H) ? 'visible' : 'hidden'
+      // (in a close-up, and on phones, anything that would land under the bottom bar stays hidden)
+      const shown = v.z < 1 && ax > L.side && ax < W && ay > 0 && ay < (hide ? maxY : H) ? 'visible' : 'hidden'
       const w = label.offsetWidth
       const h = label.offsetHeight
       let lx = ax + it.off[0] * W - (it.off[0] < 0 ? w : 0)
       let ly = ay + it.off[1] * H - (it.off[1] < 0 ? h : 0)
-      lx = Math.max(16, Math.min(lx, W - 16 - w))
-      ly = Math.max(84, Math.min(ly, maxY - h))
+      lx = Math.max(minX, Math.min(lx, W - 16 - w))
+      ly = Math.max(minY, Math.min(ly, maxY - h))
       dot.style.transform = `translate3d(${ax}px, ${ay}px, 0)`
       label.style.transform = `translate3d(${lx}px, ${ly}px, 0)`
       line.setAttribute('x1', ax.toFixed(1))
@@ -519,6 +546,8 @@ export default function Room({
     door: 0,
     look: { x: 0, y: 0 },
     mobile: isMobile(),
+    sheet: 0,
+    side: 0,
     yaw: STOPS[1].yaw,
     angle: 0,
     hot: { kitchen: 0, door: 0, media: 0, gallery: 0 },
@@ -534,6 +563,7 @@ export default function Room({
   const [angle, setAngle] = useState(0)
   const toAngle = (i: number) => {
     setAngle(i)
+    setPart(null)
     live.current.angle = i
   }
   const [view, setView] = useState<View>('room')
@@ -554,10 +584,14 @@ export default function Room({
   const indicator = useRef<HTMLSpanElement>(null)
   const items = useRef<Array<HTMLElement | null>>([])
   const [arrived, setArrived] = useState(false)
+  // phones: the finishes popup, and whether the visitor has turned yet (the swipe hint goes once they have)
+  const [finishes, setFinishes] = useState(false)
+  const [turned, setTurned] = useState(false)
+  const finishOpen = useRef<HTMLButtonElement>(null)
+  const finishPanel = useRef<HTMLDivElement>(null)
+  const sheets = useRef<Partial<Record<'room' | 'kitchen' | 'gallery', HTMLElement | null>>>({})
   const [themeId, setThemeId] = useState(() => storedFinish(look))
-  const [preview, setPreview] = useState<string | null>(null)
   const theme = themes.find((t) => t.id === themeId) ?? themes[0]
-  const shown = themes.find((t) => t.id === preview) ?? theme
   const touch = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
   const mode = !ready ? 'off' : view
   const here = NAV[STOPS[stop].nav]
@@ -637,6 +671,26 @@ export default function Room({
     window.addEventListener('resize', on)
     return () => window.removeEventListener('resize', on)
   }, [])
+
+  // The camera centres the picture in what the panels leave free: above the
+  // paper panel along the bottom (the phone stops, a close-up's bar) and
+  // beside the finishes popup (phones: above it; desktop: to its right).
+  useEffect(() => {
+    const L = live.current
+    const bar =
+      view === 'room' ? (mobile && ready ? sheets.current.room : null) : view === 'kitchen' || view === 'gallery' ? sheets.current[view] : null
+    const pop = finishes ? finishPanel.current : null
+    const measure = () => {
+      // (the popup spans the bottom on phones and narrow screens, and sits bottom left on wide ones)
+      const side = !!pop && pop.offsetWidth < (root.current?.offsetWidth ?? 0) - 1
+      L.side = side ? pop.offsetWidth : 0
+      L.sheet = pop && !side ? pop.offsetHeight : (bar?.offsetHeight ?? 0)
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    for (const el of [bar, pop]) if (el) ro.observe(el)
+    return () => ro.disconnect()
+  }, [mobile, view, ready, finishes])
 
   // A new finish: each part of the kitchen re-washes in turn.
   useEffect(() => {
@@ -769,6 +823,7 @@ export default function Room({
       if (n !== stopRef.current) {
         const seen = visits.current.stops
         seen.add(n)
+        setTurned(true)
         void narrator.say(seen.size === STOPS.length ? 'swipe-all' : 'swipe-first', { priority: 2 })
       }
       stopRef.current = n
@@ -855,7 +910,7 @@ export default function Room({
     setMenu(false)
     setPointed(null)
     setArrived(false)
-    setPreview(null)
+    setFinishes(false)
     // phones push in quicker and snappier; desktop takes the long glide
     const d = reduced ? 0.3 : L.mobile ? 1.1 : 1.5
     const ease = L.mobile ? 'power4.inOut' : 'power3.inOut'
@@ -945,11 +1000,23 @@ export default function Room({
     setPhoto((h) => (on ? i : h === i ? null : h))
   }
 
-  // Escape steps back out: the menu, then any close-up.
+  /* Phones: the finishes popup. Picks apply live, so the kitchen above it recolours as you go. */
+  const openFinishes = () => {
+    setPart(null)
+    setFinishes(true)
+    requestAnimationFrame(() => finishPanel.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus({ preventScroll: true }))
+  }
+  const closeFinishes = () => {
+    setFinishes(false)
+    if (finishPanel.current?.contains(document.activeElement)) finishOpen.current?.focus({ preventScroll: true })
+  }
+
+  // Escape steps back out: the menu or the finishes, then any close-up.
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key !== 'Escape') return
       if (menu) closeMenu()
+      else if (finishes) closeFinishes()
       else if (view !== 'room') fly('room')
     }
     window.addEventListener('keydown', onKey)
@@ -1012,6 +1079,32 @@ export default function Room({
           ? 'Drag to move along the wall'
           : 'Hover a kitchen · Esc to step back'
         : 'Click the kitchen to design it'
+
+  const swatchOf = (t: (typeof themes)[number]) => ({ '--a': t.colors.cabinets, '--b': t.colors.fronts, '--c': t.colors.worktop }) as CSSProperties
+
+  // The camera angles: a row of tabs, a mark gliding under the chosen one
+  // (one-word labels on phones and narrow screens).
+  const anglesNav = (
+    <nav className="room-angles" aria-label="Camera angle" style={{ '--i': angle, '--n': ANGLES.length } as CSSProperties}>
+      {ANGLES.map((a, i) => (
+        <button
+          key={a.id}
+          type="button"
+          className="angles-item"
+          aria-pressed={angle === i}
+          aria-label={a.label}
+          onClick={() => {
+            toAngle(i)
+            tracker.count('angles', a.id)
+          }}
+        >
+          <span className="angles-long">{a.label}</span>
+          <span className="angles-short">{a.short}</span>
+        </button>
+      ))}
+      <i className="angles-mark" aria-hidden="true" />
+    </nav>
+  )
 
   return (
     <section ref={root} className="room" data-look={look} data-view={view} data-mobile={mobile || undefined} data-embedded={embedded || undefined} aria-label="The room">
@@ -1126,6 +1219,12 @@ export default function Room({
               {n.label}
             </span>
             <span className="note-mat">{theme.names[n.part]}</span>
+            {/* touch has no hover to end it: a tap on the part again, or here */}
+            {touch && (
+              <button type="button" className="note-close" aria-label={`Hide ${n.label.toLowerCase()}`} tabIndex={n.part === part ? 0 : -1} onClick={() => setPart(null)}>
+                <span className="panel-x" aria-hidden="true" />
+              </button>
+            )}
           </div>
         ))}
         {PHOTO_NAMES.map((name, j) => (
@@ -1149,8 +1248,15 @@ export default function Room({
         ))}
       </div>
 
-      {/* Phones: where you are standing, and where a swipe goes next. */}
-      <div className="room-stops" data-on={(mobile && view === 'room' && ready) || undefined} inert={!(mobile && view === 'room' && ready)}>
+      {/* Phones: where you are standing, and where a swipe goes next, on a paper sheet along the bottom. */}
+      <div
+        ref={(el) => {
+          sheets.current.room = el
+        }}
+        className="room-stops"
+        data-on={(mobile && view === 'room' && ready) || undefined}
+        inert={!(mobile && view === 'room' && ready)}
+      >
         <div className="stops-text" key={stop}>
           <p className="stops-meta">
             {here.n} / 04 · {here.meta}
@@ -1172,53 +1278,43 @@ export default function Room({
             →
           </button>
         </div>
-        <p className="stops-hint">Swipe to look around the room</p>
+        <p className="stops-hint" data-done={turned || undefined}>
+          Swipe to look around the room
+        </p>
       </div>
 
-      {/* The kitchen close-up's camera angles. */}
-      <nav className="room-angles" data-on={view === 'kitchen' || undefined} inert={view !== 'kitchen'} aria-label="Camera angle">
-        <p className="angles-title">View</p>
-        {ANGLES.map((a, i) => (
-          <button key={a.id} type="button" className="angles-item" aria-pressed={angle === i} onClick={() => {
-              toAngle(i)
-              tracker.count('angles', a.id)
-            }}>
-            <span>{String(i + 1).padStart(2, '0')}</span>
-            {a.label}
-          </button>
-        ))}
-      </nav>
-
-      {/* The kitchen close-up: a transparent finish bar along the bottom. */}
-      <div className="room-bar" data-on={view === 'kitchen' || undefined} inert={view !== 'kitchen'}>
+      {/* The kitchen close-up's camera angles: a list on the right on desktop, a row of tabs in the sheet on phones. */}
+      {/* The kitchen close-up: a paper panel along the bottom with the way back, the finish, the camera angles and the next step. */}
+      <div
+        ref={(el) => {
+          sheets.current.kitchen = el
+        }}
+        className="room-bar"
+        data-on={view === 'kitchen' || undefined}
+        inert={view !== 'kitchen'}
+      >
+        {anglesNav}
         <button type="button" className="room-link" onClick={() => fly('room')}>
           ← Room
         </button>
-        <div className="finish">
-          <p className="finish-name" aria-live="polite">
-            <b>{shown.name}</b>
-            <span>{shown.note}</span>
-          </p>
-          <div className="finish-swatches" role="radiogroup" aria-label="Kitchen finish" onKeyDown={onFinishKey}>
-            {themes.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                role="radio"
-                aria-checked={t.id === theme.id}
-                aria-label={t.name}
-                tabIndex={t.id === theme.id ? 0 : -1}
-                className="finish-swatch"
-                style={{ '--a': t.colors.cabinets, '--b': t.colors.fronts, '--c': t.colors.worktop } as CSSProperties}
-                onPointerEnter={() => setPreview(t.id)}
-                onPointerLeave={() => setPreview(null)}
-                onFocus={() => setPreview(t.id)}
-                onBlur={() => setPreview(null)}
-                onClick={() => chooseFinish(t.id)}
-              />
-            ))}
-          </div>
-        </div>
+        <button
+          ref={finishOpen}
+          type="button"
+          className="finish-open"
+          aria-haspopup="dialog"
+          aria-expanded={finishes}
+          aria-controls="room-finishes"
+          onClick={() => (finishes ? closeFinishes() : openFinishes())}
+        >
+          <span className="swatch" style={swatchOf(theme)} aria-hidden="true" />
+          <span className="finish-open-text" aria-live="polite">
+            <span className="finish-open-kicker">Finish</span>
+            <b>{theme.name}</b>
+          </span>
+          <span className="finish-open-cta">
+            Change <Arrow out={false} />
+          </span>
+        </button>
         <a
           className="room-link"
           href={`${MAIN}/en/contact`}
@@ -1233,8 +1329,58 @@ export default function Room({
         </a>
       </div>
 
+      {/* The finishes: a terracotta popup of their own, like the menu (phones: across the bottom; desktop: bottom left). */}
+      <div className="room-finishes-catch" data-on={finishes || undefined} onClick={closeFinishes} aria-hidden="true" />
+      <div
+        id="room-finishes"
+        ref={finishPanel}
+        className="room-finishes"
+        data-on={finishes || undefined}
+        inert={!finishes}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="room-finishes-title"
+      >
+        <div className="finishes-top">
+          <p id="room-finishes-title" className="finishes-title">
+            Finishes <span>{String(themes.length).padStart(2, '0')}</span>
+          </p>
+          <button type="button" className="panel-close" onClick={closeFinishes}>
+            Close <span className="panel-x" aria-hidden="true" />
+          </button>
+        </div>
+        <div className="finishes-list" role="radiogroup" aria-label="Kitchen finish" onKeyDown={onFinishKey}>
+          {themes.map((t, i) => (
+            <button
+              key={t.id}
+              type="button"
+              role="radio"
+              aria-checked={t.id === theme.id}
+              tabIndex={t.id === theme.id ? 0 : -1}
+              className="finishes-item"
+              style={{ '--i': i } as CSSProperties}
+              onClick={() => chooseFinish(t.id)}
+            >
+              <span className="swatch" style={swatchOf(t)} aria-hidden="true" />
+              <span className="finishes-text">
+                <b>{t.name}</b>
+                <span>{t.note}</span>
+              </span>
+              <i className="finishes-radio" aria-hidden="true" />
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* The gallery wall close-up. */}
-      <div className="room-bar" data-on={view === 'gallery' || undefined} inert={view !== 'gallery'}>
+      <div
+        ref={(el) => {
+          sheets.current.gallery = el
+        }}
+        className="room-bar"
+        data-on={view === 'gallery' || undefined}
+        inert={view !== 'gallery'}
+      >
         <button type="button" className="room-link" onClick={() => fly('room')}>
           ← Room
         </button>
@@ -1369,7 +1515,7 @@ export default function Room({
         </div>
       </aside>
 
-      <p className="room-hint room-chrome" data-hidden={view === 'door' || (mobile && view === 'room') || undefined}>
+      <p className="room-hint room-chrome" data-hidden={view === 'door' || finishes || (mobile && view === 'room') || undefined}>
         <span aria-hidden="true" />
         {hint}
       </p>

@@ -1,7 +1,8 @@
 /* ------------------------------------------------------------------
- * The landing room: a drawn room with a plain-text interface. No
- * buttons, no cards: Inter text in ink, a paper halo where it sits on
- * the drawing, and a drawn underline on hover.
+ * The landing room: a drawn room with a plain-text interface: Inter
+ * text in ink with a drawn underline on hover. Nothing glows: controls
+ * sit on a paper panel along the bottom, labels on the drawing are
+ * terracotta tags, and the finishes have a terracotta popup like the menu.
  * ---------------------------------------------------------------- */
 .room {
   --ink: #111113;
@@ -11,7 +12,12 @@
   /* one accent per room: retro terracotta in the sketch, black in the realistic room */
   --accent: #c5603d;
   --accent-ink: #fbf2e3;
-  --halo: 0 0 2px var(--paper), 0 0 6px var(--paper), 0 0 12px rgb(244 242 236 / 0.9);
+  --rule: rgb(17 17 19 / 0.12);
+  /* labels on the drawing and the finishes popup: a deep terracotta, cream ink */
+  --tag: #b0502e;
+  --tag-ink: #fbf2e3;
+  --tag-muted: rgb(251 242 227 / 0.74);
+  --tag-rule: rgb(251 242 227 / 0.24);
   --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   position: fixed;
   inset: 0;
@@ -39,12 +45,15 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.43 0 0 0 0 0.4 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* the realistic room is a photograph, not paper: white halos, black accents */
+/* the realistic room is a photograph, not paper: white paper, black accents */
 .room[data-look="real"] {
   --paper: #ffffff;
   --accent: #111113;
   --accent-ink: #ffffff;
-  --halo: 0 0 2px #fff, 0 0 6px #fff, 0 0 12px rgb(255 255 255 / 0.9);
+  --tag: #111113;
+  --tag-ink: #ffffff;
+  --tag-muted: rgb(255 255 255 / 0.7);
+  --tag-rule: rgb(255 255 255 / 0.2);
   background: #e9e5de;
 }
 .room[data-look="real"] .room-grain {
@@ -67,7 +76,6 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-decoration: none;
-  text-shadow: var(--halo);
   white-space: nowrap;
   cursor: pointer;
 }
@@ -100,7 +108,6 @@
 }
 .room-link:focus-visible,
 .callout:focus-visible,
-.finish-swatch:focus-visible,
 .stops-cta:focus-visible,
 .stops-step:focus-visible {
   outline: 2px solid #767676;
@@ -139,7 +146,6 @@
   font: 700 17px/1 var(--font-sans);
   letter-spacing: -0.035em;
   text-decoration: none;
-  text-shadow: var(--halo);
 }
 .room-wordmark-sub {
   font-size: 10px;
@@ -152,22 +158,32 @@
   align-items: center;
   gap: 28px;
 }
-/* ---- the hint (room: bottom centre; close-ups: under the header) ---- */
+/* ---- the hint: a paper tag (room: bottom centre; close-ups: under the header) */
+/* (centred with auto margins, not `translate`: GSAP folds a CSS translate
+   into its own transform, and iOS Safari drops it beside a transform transition) */
 .room-hint {
   position: absolute;
   z-index: 30;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: max(26px, env(safe-area-inset-bottom));
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  width: fit-content;
   margin: 0;
-  color: var(--muted);
+  padding: 8px 14px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  color: var(--ink);
   font: 500 12px/1 var(--font-sans);
   letter-spacing: 0.04em;
-  text-shadow: var(--halo);
   white-space: nowrap;
-  translate: -50% 0;
+}
+/* (specific enough to beat the page's `.page p { margin: 0 }`) */
+.room .room-hint {
+  margin-inline: auto;
 }
 .room-hint span {
   width: 6px;
@@ -222,7 +238,7 @@
 .room-callouts[data-mode="room"] .room-leaders line[data-hot] {
   opacity: 0.85;
 }
-/* kitchen close-up: small dots on the parts; a material only on hover */
+/* kitchen close-up: small dots on the parts; a material only on hover (or a tap) */
 .room-callouts[data-mode="kitchen"] .callout-dot[data-set="note"] {
   opacity: 0.75;
   transition-delay: 1s;
@@ -230,6 +246,9 @@
 .room-callouts[data-mode="kitchen"] [data-set="note"][data-hot] {
   opacity: 1;
   transition-delay: 0s;
+}
+.room-callouts[data-mode="kitchen"] .callout-note[data-hot] {
+  pointer-events: auto;
 }
 .room-callouts[data-mode="kitchen"] .room-leaders line[data-set="note"][data-hot] {
   opacity: 0.55;
@@ -331,14 +350,25 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
-  text-shadow: var(--halo);
 }
 .callout-cta {
   font-size: 13px;
   padding: 3px 0 5px;
 }
 
-/* kitchen notes: part in mono, the material below, both plain text */
+/* labels on the drawing (a part's material, a photo's caption): terracotta
+   tags in cream, like the menu, so they read on any part of the drawing */
+.callout-note,
+.callout-photo {
+  padding: 10px 14px 11px 12px;
+  background: var(--tag);
+  border-radius: 3px;
+  color: var(--tag-ink);
+}
+.callout-note .note-part,
+.callout-photo .photo-n {
+  color: var(--tag-muted);
+}
 .note-part {
   display: flex;
   align-items: center;
@@ -349,14 +379,40 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  box-shadow: 0 0 0 1px rgb(17 17 19 / 0.35), 0 0 0 3px var(--paper);
+  box-shadow: 0 0 0 1.5px var(--tag-ink);
   transition: background-color 0.9s var(--ease-glide);
 }
 .note-mat {
   padding-left: 17px;
   font: 600 16px/1.1 var(--font-sans);
   letter-spacing: -0.01em;
-  text-shadow: var(--halo);
+}
+/* touch: a close button at the tag's end */
+.callout-note:has(.note-close) {
+  padding-right: 56px;
+}
+.note-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--tag-rule);
+  background: none;
+  color: var(--tag-ink);
+  cursor: pointer;
+}
+.note-close .panel-x {
+  width: 12px;
+  height: 12px;
+}
+.note-close:focus-visible {
+  outline: 2px solid var(--tag-ink);
+  outline-offset: -4px;
 }
 
 /* gallery captions, on the wall under each photo */
@@ -365,210 +421,259 @@
   align-items: center;
   gap: 8px;
   font: 600 14px/1 var(--font-sans);
-  text-shadow: var(--halo);
 }
 
-/* ---- the close-up bars: just text along the bottom ----------------- */
-.room-bar {
+/* ---- the close-ups' panel (and the phone stops): paper along the bottom */
+.room-bar,
+.room-stops {
   position: absolute;
   z-index: 30;
-  left: 50%;
-  bottom: max(22px, env(safe-area-inset-bottom));
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 18px;
-  width: min(1100px, calc(100% - 48px));
-  translate: -50% 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12px max(20px, calc((100vw - 1344px) / 2)) max(12px, env(safe-area-inset-bottom));
+  background: var(--paper);
+  border-top: 1px solid var(--rule);
   opacity: 0;
-  transform: translateY(16px);
+  transform: translateY(100%);
   pointer-events: none;
   transition:
-    opacity 0.4s var(--ease-out),
-    transform 0.6s var(--ease-out);
+    opacity 0.3s var(--ease-out),
+    transform 0.7s var(--ease-glide);
 }
-.room-bar[data-on] {
+:is(.room-bar, .room-stops)[data-on] {
   opacity: 1;
   transform: none;
-  transition-delay: 0.8s;
+  transition-delay: 0.5s;
 }
-.room-bar[data-on] > * {
+.room-bar[data-on] > *,
+.room-stops[data-on] {
   pointer-events: auto;
 }
-.finish {
+.room[data-look="real"] :is(.room-stops, .room-bar) {
+  background: #ffffff;
+}
+
+/* stacked (phones, narrow screens): the angles, the finish, then back / next */
+.room-bar {
   display: grid;
-  justify-items: center;
-  gap: 12px;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 2px 16px;
+}
+.room-bar > :is(.room-angles, .finish-open, .finish-name) {
+  grid-column: 1 / -1;
+}
+.room-bar > .room-angles {
+  order: -2;
+}
+.room-bar > :is(.finish-open, .finish-name) {
+  order: -1;
+}
+.room-bar > a.room-link {
+  justify-self: end;
+}
+.room-bar .room-link {
+  min-height: 44px;
 }
 .finish-name {
   display: grid;
-  justify-items: center;
+  justify-items: start;
   gap: 5px;
   margin: 0;
-  text-align: center;
-  text-shadow: var(--halo);
+  padding: 6px 0 8px;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
 }
 .finish-name b {
-  font: 600 16px/1.1 var(--font-sans);
+  font: 600 17px/1.1 var(--font-sans);
   letter-spacing: -0.01em;
 }
 .finish-name span {
   font: 400 12px/1.3 var(--font-sans);
   color: var(--muted);
 }
-.finish-swatches {
-  display: flex;
-  gap: 12px;
-}
-.finish-swatch {
-  position: relative;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--a) 0 50%, var(--b) 50% 100%);
-  box-shadow: 0 0 0 1px rgb(17 17 19 / 0.25), 0 0 0 3px var(--paper);
-  cursor: pointer;
-  transition: transform 0.35s var(--ease-out);
-}
-.finish-swatch::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -9px;
-  width: 4px;
-  height: 4px;
-  margin-left: -2px;
-  border-radius: 50%;
-  background: var(--accent);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-@media (hover: hover) {
-  .finish-swatch:hover {
-    transform: translateY(-3px);
+
+/* one row (wide screens): back · finish · angles · next */
+@media (min-width: 1000px) {
+  .room:not([data-mobile]) .room-bar {
+    display: flex;
+    gap: 32px;
+    padding-top: 6px;
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+  }
+  .room:not([data-mobile]) .room-bar > button.room-link {
+    order: -3;
+  }
+  .room:not([data-mobile]) .room-bar > :is(.finish-open, .finish-name) {
+    order: -2;
+    width: auto;
+    min-height: 68px;
+    padding: 0 0 0 32px;
+    border-bottom: 0;
+    border-left: 1px solid var(--rule);
+  }
+  .room:not([data-mobile]) .room-bar > .finish-name {
+    flex: 1;
+    align-content: center;
+  }
+  .room:not([data-mobile]) .room-bar > .room-angles {
+    order: -1;
+    flex: 1;
+    align-self: stretch;
+    padding-left: 16px;
+    border-bottom: 0;
+    border-left: 1px solid var(--rule);
+  }
+  .room:not([data-mobile]) .angles-item {
+    font-size: 12px;
+  }
+  .room:not([data-mobile]) .angles-mark {
+    left: 16px;
+    bottom: 14px;
+    width: calc((100% - 16px) / var(--n));
+  }
+  .room:not([data-mobile]) .room-bar > a.room-link {
+    margin-left: auto;
   }
 }
-.finish-swatch[aria-checked="true"] {
-  box-shadow: 0 0 0 1px rgb(17 17 19 / 0.25), 0 0 0 3px var(--paper), 0 0 0 4.5px var(--accent);
-}
-.finish-swatch[aria-checked="true"]::after {
-  opacity: 1;
-}
 
-/* ---- the kitchen's camera angles: a plain list on the right ---------- */
+/* ---- the kitchen's camera angles: a row of tabs ---------------------- */
 .room-angles {
-  position: absolute;
-  z-index: 30;
-  right: max(24px, calc((100vw - 1344px) / 2));
-  top: 50%;
-  display: grid;
-  justify-items: end;
-  gap: 4px;
-  translate: 0 -50%;
-  opacity: 0;
-  transform: translateX(12px);
-  pointer-events: none;
-  transition:
-    opacity 0.4s var(--ease-out),
-    transform 0.6s var(--ease-out);
-}
-.room-angles[data-on] {
-  opacity: 1;
-  transform: none;
-  pointer-events: auto;
-  transition-delay: 1s;
-}
-.angles-title {
-  margin: 0 0 6px;
-  font: 500 10px/1 var(--mono);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--muted);
-  text-shadow: var(--halo);
+  position: relative;
+  display: flex;
+  border-bottom: 1px solid var(--rule);
 }
 .angles-item {
-  position: relative;
+  flex: 1;
   display: inline-flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 6px 16px 6px 0;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 6px;
   border: 0;
   background: none;
-  color: var(--ink);
-  font: 600 12px/1 var(--font-sans);
+  color: var(--muted);
+  font: 600 11px/1 var(--font-sans);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  text-shadow: var(--halo);
+  white-space: nowrap;
   cursor: pointer;
-  opacity: 0.5;
-  transition: opacity 0.3s;
+  transition: color 0.4s var(--ease-out);
 }
-.angles-item span {
-  font: 500 10px/1 var(--mono);
-  letter-spacing: 0.1em;
-  color: var(--muted);
-}
-.angles-item::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: 50%;
-  width: 8px;
-  height: 1.5px;
-  background: currentColor;
-  transform: scaleX(0);
-  transform-origin: right;
-  transition: transform 0.45s var(--ease-out);
-}
-.angles-item:hover,
-.angles-item:focus-visible,
-.angles-item[aria-pressed="true"] {
-  opacity: 1;
-}
-.angles-item[aria-pressed="true"]::after {
-  transform: none;
+@media (hover: hover) {
+  .angles-item:hover {
+    color: var(--ink);
+  }
 }
 .angles-item[aria-pressed="true"] {
   color: var(--accent);
 }
 .angles-item:focus-visible {
   outline: 2px solid #767676;
-  outline-offset: 4px;
+  outline-offset: -2px;
 }
-.room[data-mobile] .room-angles {
-  /* the same list as on desktop, with thumb-sized rows */
-  right: 14px;
-  gap: 0;
+/* one-word labels on phones and narrow screens */
+.angles-short {
+  display: none;
 }
-.room[data-mobile] .angles-item {
-  min-height: 40px;
-  padding: 0 14px 0 8px;
-  font-size: 11px;
+.room[data-mobile] .angles-long {
+  display: none;
+}
+.room[data-mobile] .angles-short {
+  display: inline;
+}
+@media (max-width: 1239px) {
+  .angles-long {
+    display: none;
+  }
+  .angles-short {
+    display: inline;
+  }
+}
+/* the mark under the chosen angle glides to the next */
+.angles-mark {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: calc(100% / var(--n));
+  height: 2px;
+  background: var(--accent);
+  transform: translateX(calc(var(--i) * 100%));
+  transition: transform 0.6s var(--ease-glide);
+}
+
+/* ---- the finish: one row that opens the finishes popup --------------- */
+.finish-open {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.finish-open-text {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.finish-open-kicker {
+  font: 500 10px/1 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.finish-open-text b {
+  overflow: hidden;
+  font: 600 17px/1.1 var(--font-sans);
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.finish-open-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+  font: 600 12px/1 var(--font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.finish-open-cta .room-arrow {
+  transition: transform 0.35s var(--ease-out);
+}
+@media (hover: hover) {
+  .finish-open:hover .finish-open-cta .room-arrow {
+    transform: translateX(3px);
+  }
+}
+.finish-open:focus-visible {
+  outline: 2px solid #767676;
+  outline-offset: 2px;
+}
+.swatch {
+  display: block;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--a) 0 50%, var(--b) 50% 100%);
+  box-shadow: 0 0 0 1px rgb(17 17 19 / 0.25);
 }
 
 /* ---- phones: where you are standing in the room --------------------- */
 .room-stops {
-  position: absolute;
-  z-index: 30;
-  left: 20px;
-  right: 20px;
-  bottom: max(22px, env(safe-area-inset-bottom));
   display: grid;
-  gap: 14px;
-  opacity: 0;
-  transform: translateY(14px);
-  pointer-events: none;
-  transition:
-    opacity 0.4s var(--ease-out),
-    transform 0.6s var(--ease-out);
-}
-.room-stops[data-on] {
-  opacity: 1;
-  transform: none;
-  pointer-events: auto;
-  transition-delay: 0.3s;
+  gap: 10px;
+  padding-top: 18px;
 }
 .stops-text {
   display: grid;
@@ -588,10 +693,9 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
-  text-shadow: var(--halo);
 }
 .stops-cta {
-  font: 600 26px/1.05 var(--font-sans);
+  font: 600 24px/1.05 var(--font-sans);
   letter-spacing: -0.03em;
   text-transform: none;
 }
@@ -605,13 +709,20 @@
   justify-content: space-between;
 }
 .stops-step {
-  padding: 8px 2px;
+  display: grid;
+  align-items: center;
+  justify-items: start;
+  width: 44px;
+  height: 44px;
+  padding: 0;
   border: 0;
   background: none;
   color: var(--ink);
   font: 500 18px/1 var(--font-sans);
-  text-shadow: var(--halo);
   cursor: pointer;
+}
+.stops-step:last-child {
+  justify-items: end;
 }
 .stops-step:disabled {
   opacity: 0.25;
@@ -637,7 +748,9 @@
   font: 500 11px/1 var(--font-sans);
   color: var(--muted);
   text-align: center;
-  text-shadow: var(--halo);
+}
+.stops-hint[data-done] {
+  display: none;
 }
 
 /* ---- through the workshop door -------------------------------------- */
@@ -1055,63 +1168,194 @@
 .room[data-mobile] .room-leaders line[data-set="room"] {
   display: none;
 }
-.room[data-mobile] .room-bar {
-  bottom: 0;
-  flex-wrap: wrap;
-  width: 100%;
-  padding: 18px 20px max(20px, env(safe-area-inset-bottom));
-  gap: 14px;
-  padding-top: 40px;
-  background: linear-gradient(rgb(244 242 236 / 0), rgb(244 242 236 / 0.92) 34%, rgb(244 242 236 / 0.97));
-  transform: translateY(100%);
-  transition:
-    opacity 0.3s var(--ease-out),
-    transform 0.7s var(--ease-out);
-}
-.room[data-mobile] .room-bar[data-on] {
-  transform: none;
-  transition-delay: 0.5s;
-}
-.room[data-mobile] .room-bar .finish,
-.room[data-mobile] .room-bar > .finish-name {
-  order: -1;
-  width: 100%;
-}
-.room[data-mobile] .finish-name span {
-  display: none;
-}
-.room[data-look="real"][data-mobile] .room-bar {
-  background: linear-gradient(rgb(255 255 255 / 0), rgb(255 255 255 / 0.92) 34%, rgb(255 255 255 / 0.97));
-}
-.room[data-mobile] .finish {
-  gap: 14px;
-}
-.room[data-mobile] .finish-name b {
-  font-size: 17px;
-}
-.room[data-mobile] .finish-swatches {
-  max-width: 100%;
-  gap: 12px;
-  padding: 6px 6px 12px;
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-  scrollbar-width: none;
-  touch-action: pan-x;
-}
-.room[data-mobile] .finish-swatches::-webkit-scrollbar {
-  display: none;
-}
-.room[data-mobile] .finish-swatch {
-  flex: none;
-  width: 44px;
-  height: 44px;
-  scroll-snap-align: center;
-}
-.room[data-mobile] .room-bar .room-link {
-  min-height: 40px;
-}
 .room[data-mobile] .room-hint {
   top: 80px;
+  bottom: auto;
+}
+
+/* ---- the finishes popup: terracotta and cream, like the menu ----------
+ * Phones and narrow screens: across the bottom. Wide screens: bottom left.
+ * Picks apply live; the camera keeps the kitchen in view beside it.
+ * ---------------------------------------------------------------------- */
+.room-finishes-catch {
+  position: absolute;
+  inset: 0;
+  z-index: 34;
+  display: none;
+}
+.room-finishes-catch[data-on] {
+  display: block;
+}
+.room-finishes {
+  /* (the menu's close button reads these) */
+  --panel-ink: var(--tag-ink);
+  position: absolute;
+  z-index: 36;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  max-height: calc(100% - 132px);
+  padding: 0 20px max(8px, env(safe-area-inset-bottom));
+  background: var(--tag);
+  color: var(--tag-ink);
+  transform: translateY(calc(100% + 24px));
+  visibility: hidden;
+  transition:
+    transform 0.55s cubic-bezier(0.7, 0, 0.84, 0),
+    visibility 0s 0.55s;
+}
+.room-finishes[data-on] {
+  transform: none;
+  visibility: visible;
+  transition:
+    transform 0.9s var(--ease-out),
+    visibility 0s;
+}
+@media (min-width: 1000px) {
+  .room:not([data-mobile]) .room-finishes {
+    right: auto;
+    width: 420px;
+    max-height: calc(100% - 120px);
+    padding-inline: 32px;
+  }
+}
+.finishes-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 60px;
+  border-bottom: 1px solid var(--tag-rule);
+}
+.finishes-title {
+  margin: 0;
+  font: 500 10px/1 var(--mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tag-muted);
+}
+.finishes-title span {
+  margin-left: 6px;
+  color: var(--tag-ink);
+}
+.finishes-top .panel-close {
+  min-height: 44px;
+}
+.finishes-list {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+.finishes-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  min-height: 68px;
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--tag-rule);
+  background: none;
+  color: var(--tag-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.25s var(--ease-out),
+    transform 0.25s var(--ease-out);
+}
+.finishes-item:last-child {
+  border-bottom: 0;
+}
+.room-finishes[data-on] .finishes-item {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.5s var(--ease-out),
+    transform 0.7s var(--ease-out);
+  transition-delay: calc(0.2s + var(--i) * 0.05s);
+}
+.finishes-item .swatch {
+  width: 42px;
+  height: 42px;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.18);
+  transition: box-shadow 0.35s var(--ease-out);
+}
+.finishes-item[aria-checked="true"] .swatch {
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.18), 0 0 0 3px var(--tag), 0 0 0 4.5px var(--tag-ink);
+}
+.finishes-text {
+  display: grid;
+  gap: 5px;
+  transition: transform 0.55s var(--ease-out);
+}
+.finishes-text b {
+  font: 600 16px/1.15 var(--font-sans);
+  letter-spacing: -0.01em;
+}
+.finishes-text span {
+  font: 400 13px/1.35 var(--font-sans);
+  color: var(--tag-muted);
+}
+@media (hover: hover) {
+  .finishes-item:hover .finishes-text {
+    transform: translateX(6px);
+  }
+}
+.finishes-radio {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--tag-muted);
+  border-radius: 50%;
+  transition: border-color 0.3s;
+}
+.finishes-radio::after {
+  content: "";
+  position: absolute;
+  inset: 3.5px;
+  border-radius: 50%;
+  background: var(--tag-ink);
+  scale: 0;
+  transition: scale 0.4s var(--ease-out);
+}
+.finishes-item[aria-checked="true"] .finishes-radio {
+  border-color: var(--tag-ink);
+}
+.finishes-item[aria-checked="true"] .finishes-radio::after {
+  scale: 1;
+}
+.finishes-item:focus-visible {
+  outline: 2px solid var(--tag-ink);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.room-bar, .room-stops),
+  .room-finishes,
+  .finishes-item {
+    transform: none;
+  }
+  .room-finishes {
+    opacity: 0;
+    transition:
+      opacity 0.3s,
+      visibility 0s 0.3s;
+  }
+  .room-finishes[data-on] {
+    opacity: 1;
+    transition:
+      opacity 0.3s,
+      visibility 0s;
+  }
+  .angles-mark,
+  .finishes-text {
+    transition: none;
+  }
 }
 
 @media (max-width: 640px) {

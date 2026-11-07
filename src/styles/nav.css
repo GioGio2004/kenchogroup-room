@@ -6,7 +6,6 @@
 .nav {
   --ink: #111113;
   --paper: #f4f2ec;
-  --halo: 0 0 2px var(--paper), 0 0 6px var(--paper), 0 0 12px rgb(244 242 236 / 0.9);
   --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   font-family: var(--font-sans);
@@ -42,7 +41,6 @@
   color: var(--ink);
   font: 700 17px/1 var(--font-sans);
   letter-spacing: -0.035em;
-  text-shadow: var(--halo);
   cursor: pointer;
 }
 .nav-wordmark-sub {
@@ -68,7 +66,6 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-decoration: none;
-  text-shadow: var(--halo);
   white-space: nowrap;
   cursor: pointer;
 }
@@ -107,10 +104,9 @@
   transform: translateX(2px);
 }
 
-/* over a coloured section: white, no paper halo */
+/* over a coloured section: white */
 .nav[data-light] :is(.nav-wordmark, .nav-link) {
   color: #ffffff;
-  text-shadow: none;
 }
 
 /* ---- the menu ---------------------------------------------------------- */
