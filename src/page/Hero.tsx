@@ -1,10 +1,12 @@
 import { useRef } from 'react'
 import { gsap, SplitText, useGSAP, phone, reduced, scrollToId } from '@/page/fx'
 import { MAIN, photo, PHOTO } from '@/page/content'
+import { Seal } from '@/page/Awards'
 
 /*
  * The hero: three lines of soft serif that land letter by letter, and a
- * real kitchen framed in a plain arch. Nothing else.
+ * real kitchen framed in a plain arch, with the Site of the Day seal
+ * stamped on its shoulder. Nothing else.
  */
 export default function Hero({ play }: { play: boolean }) {
   const root = useRef<HTMLElement>(null)
@@ -15,11 +17,11 @@ export default function Hero({ play }: { play: boolean }) {
       const split = SplitText.create(q('.hero-line'), { type: 'chars', charsClass: 'hc' })
       const chars = split.chars as HTMLElement[]
       if (!play) {
-        gsap.set([...q('.hero-window, .hero-reveal'), ...chars], { autoAlpha: 0 })
+        gsap.set([...q('.hero-window, .hero-reveal, .seal-stamp'), ...chars], { autoAlpha: 0 })
         return () => split.revert()
       }
       if (reduced()) {
-        gsap.from([...q('.hero-window, .hero-reveal'), ...chars], { autoAlpha: 0, duration: 0.8 })
+        gsap.from([...q('.hero-window, .hero-reveal, .seal-stamp'), ...chars], { autoAlpha: 0, duration: 0.8 })
         return () => split.revert()
       }
 
@@ -30,9 +32,12 @@ export default function Hero({ play }: { play: boolean }) {
         .from(q('.hero-window'), { clipPath: 'inset(100% 0% 0% 0% round 999px 999px 0 0)', duration: 1.5, ease: 'expo.inOut' }, 0.4)
         .from(q('.hero-window img'), { scale: 1.35, duration: 2.4 }, 0.4)
         .from(q('.hero-reveal'), { y: 20, autoAlpha: 0, duration: 1.1, stagger: 0.1, ease: 'power3.out' }, 1)
+        // the seal is pressed on as the arch finishes opening
+        .from(q('.seal-stamp'), { scale: 1.7, rotate: -40, autoAlpha: 0, duration: 1.1, ease: 'land' }, 1.5)
 
       // ---- scrolling away: the lines drift apart, the sun sets gently -----
       const st = { trigger: root.current, start: 'top top', end: 'bottom top', scrub: 0.6 }
+      gsap.to(q('.seal-spin'), { rotate: 150, ease: 'none', scrollTrigger: st })
       gsap.to(q('.hero-line[data-i="0"]'), { xPercent: -8, ease: 'none', scrollTrigger: st })
       gsap.to(q('.hero-line[data-i="2"]'), { xPercent: 6, ease: 'none', scrollTrigger: st })
       gsap.to(q('.hero-window img'), { scale: 1.12, ease: 'none', scrollTrigger: st })
@@ -70,8 +75,8 @@ export default function Hero({ play }: { play: boolean }) {
         </div>
       </div>
 
-      <div className="hero-sun" aria-hidden="true">
-        <figure className="hero-window">
+      <div className="hero-sun">
+        <figure className="hero-window" aria-hidden="true">
           <img
             src={photo('walnut-island')}
             width={PHOTO['walnut-island'].w}
@@ -80,6 +85,7 @@ export default function Hero({ play }: { play: boolean }) {
             fetchPriority="high"
           />
         </figure>
+        <Seal className="hero-seal" />
       </div>
     </section>
   )

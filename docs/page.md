@@ -29,12 +29,28 @@ On branch `claude/mono`, forked from `main` (production).
 | Section | File | What happens |
 |---|---|---|
 | Arrival | `Page.tsx` | Coloured rings (screen-sized circle masks) burst out of the opening, then the hero lands. |
-| Hero | `Hero.tsx` | Three lines of Inter land letter by letter beside a real kitchen in a plain arch. Book a meeting goes to kenchogroup.ge. |
+| Hero | `Hero.tsx` | Three lines of Inter land letter by letter beside a real kitchen in a plain arch. Book a meeting goes to kenchogroup.ge. The Site of the Day seal is pressed onto the arch's shoulder and turns as you scroll; it goes to the page's Orpetron listing (new tab). |
 | (01) What we do | `Manifesto.tsx` | One centred sentence. The screen holds while it lights up word by word. |
 | (02) What we make | `Pieces.tsx` | The section pins and six coloured cards slide past sideways, each with its own photo shape. |
 | (03) Palettes | `Finishes.tsx` | The room's five kitchen finishes, each drawn as a kitchen reduced to stripes: wall units, splashback, worktop, base fronts. Together they make a stripe wall. The scroll opens the columns in turn; hover opens one; a click picks it for the room (the `kencho:finish` event plus localStorage). |
 | (04) Outro | `Outro.tsx` | White on orange to the lid's very edge: "Now, design yours." KENCHO stands up letter by letter in white. |
 | The room | `RoomFooter.tsx` | The footer: a sticky, full-screen layer under the page. It draws itself the first time it is 40% uncovered and sleeps when covered. Its TV (Contacts) goes to the main site's contact page. |
+
+## Awards
+
+Orpetron Web Design Awards, 19 November 2026: Site of the Day and Web
+Design Appreciation. Jury scores: usability 8.9, design 9.2, development 9.1.
+The facts, with the listing's URL (https://orpetron.com/sites/kencho-group/), are in `AWARDS` (`src/page/content.ts`).
+
+- **The seal** (`src/page/seal.ts`): Orpetron's own Site of the Day seal, traced from the certificate's vector. Its outer contour is filled mustard, like a gold sticker, and the line art is ink. It is about 12 KB inline, with no image to load. It links to the Orpetron listing in a new tab (the user's call).
+- **The popup** (`src/page/Awards.tsx`, `src/styles/awards.css`): terracotta and cream like the menu.
+  - The scores are drawn as rings, and both certificates hang like prints. A "See it on Orpetron" pill links to the listing.
+  - The menu's Awards link opens it, via `openAwards()` from `src/page/awards-event.ts`.
+  - The certificates load the first time it opens, never with the page.
+- **The certificates** (`public/media/awards`): rendered from Orpetron's SVGs at 720 and 1440 px wide (WebP, 41 to 195 KB).
+  - The SVGs embed their font from orpetron.com, which sends no CORS header, so browsers fall back to Times.
+  - The renders set those three lines (the name, the byline, the date) in Inter caps instead.
+- Search engines get the awards as `award` on the WebSite in `index.html`, and in the hidden crawler copy.
 
 ## The narrator
 

@@ -59,6 +59,25 @@ export const PHOTO = {
 export type PhotoKey = keyof typeof PHOTO
 export const photo = (k: PhotoKey) => `/media/photos/${k}.webp`
 
+/* The awards this page won: Orpetron Web Design Awards, 19 November 2026.
+   The scores are the jury's, from the page's Orpetron listing; the
+   certificates are Orpetron's, set as images (public/media/awards). */
+export const AWARDS = {
+  by: 'Orpetron Web Design Awards',
+  date: '19 November 2026',
+  url: 'https://orpetron.com/sites/kencho-group/',
+  scores: [
+    ['Usability', 8.9],
+    ['Design', 9.2],
+    ['Development', 9.1],
+  ] as Array<[string, number]>,
+  certificates: [
+    { key: 'site-of-the-day', title: 'Site of the Day' },
+    { key: 'web-design-appreciation', title: 'Web Design Appreciation' },
+  ],
+} as const
+export const certificate = (key: string, w: 720 | 1440) => `/media/awards/${key}-${w}.webp`
+
 /* The retro palette: a seventies interior, on cream paper. */
 export const C = {
   paper: '#f4efe4',

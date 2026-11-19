@@ -1,0 +1,306 @@
+/* ------------------------------------------------------------------
+ * The awards: Orpetron's Site of the Day seal, a gold sticker on the
+ * hero's arch, and the popup it opens (terracotta and cream, like the
+ * menu, with the menu's top row and Close button from nav.css).
+ * ---------------------------------------------------------------- */
+.seal {
+  --seal: clamp(96px, 8.6vw, 156px);
+  position: absolute;
+  z-index: 2;
+  width: var(--seal);
+  height: var(--seal);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+  filter: drop-shadow(0 0 0 rgb(31 28 24 / 0));
+  transition:
+    transform 0.35s var(--ease-out),
+    filter 0.35s var(--ease-out);
+}
+/* lifts off the paper like the buttons, with a printed shadow */
+.seal:hover {
+  transform: translate(-3px, -3px);
+  filter: drop-shadow(4px 4px 0 var(--ink));
+}
+.seal:active {
+  transform: none;
+  filter: drop-shadow(0 0 0 rgb(31 28 24 / 0));
+}
+.seal-stamp,
+.seal-spin {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.seal svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+.seal-paper {
+  fill: var(--mustard);
+}
+
+/* on the arch's left shoulder, half on the photograph (placed with margins,
+   not the translate property, which iOS Safari can drop beside a transform) */
+.hero-seal {
+  left: 22%;
+  top: 18.5%;
+  margin: calc(var(--seal) / -2) 0 0 calc(var(--seal) / -2);
+}
+@media (max-width: 900px), (max-aspect-ratio: 4/5) {
+  .seal {
+    --seal: clamp(84px, 24vw, 112px);
+  }
+}
+
+/* ---- the popup ------------------------------------------------------ */
+.aw-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 96;
+  background: rgb(17 17 19 / 0.22);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s var(--ease-out);
+}
+.aw-scrim[data-on] {
+  opacity: 1;
+  pointer-events: auto;
+}
+.aw-panel {
+  --panel-bg: #c5603d;
+  --panel-ink: #fbf2e3;
+  --panel-muted: rgb(251 242 227 / 0.66);
+  --panel-rule: rgb(251 242 227 / 0.24);
+  position: fixed;
+  z-index: 97;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  width: 50vw;
+  min-width: 440px;
+  padding: max(28px, env(safe-area-inset-top)) max(40px, 4vw) max(32px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  background: var(--panel-bg);
+  color: var(--panel-ink);
+  transform: translateX(102%);
+  visibility: hidden;
+  transition:
+    transform 0.55s cubic-bezier(0.7, 0, 0.84, 0),
+    visibility 0s 0.55s;
+}
+.aw-panel[data-on] {
+  transform: none;
+  visibility: visible;
+  transition:
+    transform 0.9s var(--ease-out),
+    visibility 0s;
+}
+.aw-body {
+  display: grid;
+  align-content: center;
+  gap: clamp(22px, 4.2vh, 44px);
+  padding-top: 2vh;
+}
+.aw-head {
+  display: grid;
+  gap: 14px;
+}
+.page .aw-title {
+  font: 600 clamp(40px, 4.4vw, 76px) / 0.92 var(--font-sans);
+  letter-spacing: -0.045em;
+}
+.aw-lede {
+  max-width: 26em;
+  font: 450 15px/1.5 var(--font-sans);
+  color: var(--panel-muted);
+}
+/* a cream pill with the buttons' printed shadow */
+.aw-link {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 20px;
+  border: 1.5px solid var(--panel-ink);
+  border-radius: 999px;
+  color: var(--panel-ink);
+  font: 600 14px/1 var(--font-sans);
+  text-decoration: none;
+  box-shadow: 0 0 0 var(--panel-ink);
+  transition:
+    transform 0.35s var(--ease-out),
+    box-shadow 0.35s var(--ease-out),
+    background-color 0.3s,
+    color 0.3s;
+}
+.aw-link:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 4px 4px 0 var(--panel-ink);
+  background: var(--panel-ink);
+  color: var(--panel-bg);
+}
+.aw-panel .aw-link:focus-visible {
+  outline: 2px solid var(--panel-ink);
+  outline-offset: 4px;
+}
+
+/* the jury's scores, each a ring drawn to its mark */
+.aw-scores {
+  display: flex;
+  gap: clamp(14px, 2vw, 32px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.aw-score {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+.aw-dial {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: clamp(80px, 7vw, 112px);
+  aspect-ratio: 1;
+}
+.aw-dial svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke-width: 3;
+  transform: rotate(-90deg);
+}
+.aw-track {
+  stroke: var(--panel-rule);
+}
+/* r = 46: the circumference is 289.03 */
+.aw-ring {
+  stroke: var(--panel-ink);
+  stroke-linecap: round;
+  stroke-dasharray: 289.03px;
+  stroke-dashoffset: 289.03px;
+  transition: stroke-dashoffset 0.3s;
+}
+.aw-panel[data-on] .aw-ring {
+  stroke-dashoffset: calc(289.03px * (1 - var(--v)));
+  transition: stroke-dashoffset 1.6s var(--ease-glide) calc(0.45s + var(--i) * 0.12s);
+}
+.aw-dial b {
+  font: 600 clamp(22px, 1.9vw, 30px) / 1 var(--font-sans);
+  letter-spacing: -0.04em;
+}
+.aw-label {
+  font: 500 10px/1 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--panel-muted);
+}
+
+/* the certificates, hung like prints */
+.aw-certs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(16px, 2.4vw, 40px);
+  max-width: min(100%, 60svh);
+}
+.aw-cert {
+  display: grid;
+  gap: 14px;
+  color: inherit;
+  text-decoration: none;
+  opacity: 0;
+  transform: translateY(26px);
+  transition:
+    opacity 0.3s var(--ease-out),
+    transform 0.3s var(--ease-out);
+}
+.aw-panel[data-on] .aw-cert {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.7s var(--ease-out) calc(0.35s + var(--i) * 0.1s),
+    transform 1s var(--ease-out) calc(0.35s + var(--i) * 0.1s);
+}
+.aw-print {
+  display: block;
+  aspect-ratio: 420 / 594;
+  background: rgb(31 28 24 / 0.14);
+  box-shadow: 0 22px 40px -18px rgb(31 28 24 / 0.6);
+  transform: rotate(-1.6deg);
+  transition: transform 0.6s var(--ease-out);
+}
+.aw-cert:nth-child(2) .aw-print {
+  transform: rotate(1.2deg);
+}
+.aw-cert:hover .aw-print {
+  transform: translateY(-6px);
+}
+.aw-print img {
+  width: 100%;
+  height: 100%;
+}
+.aw-caption {
+  font: 600 14px/1.25 var(--font-sans);
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+.aw-caption .nav-arrow {
+  display: inline-block;
+  vertical-align: -1px;
+  color: var(--panel-muted);
+}
+.aw-panel .aw-cert:focus-visible {
+  outline: 2px solid var(--panel-ink);
+  outline-offset: 6px;
+}
+
+@media (max-width: 760px) {
+  .aw-panel {
+    width: 100%;
+    min-width: 0;
+    padding: max(18px, env(safe-area-inset-top)) 22px max(22px, env(safe-area-inset-bottom));
+  }
+  .aw-body {
+    padding-top: 0;
+  }
+  .aw-scores {
+    justify-content: space-between;
+    max-width: 340px;
+  }
+  .aw-caption {
+    font-size: 13px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* (no transition at all: a visibility transition, however short, would
+     still be hidden on the frame that focuses the Close button) */
+  .aw-panel,
+  .aw-panel[data-on] {
+    transition: none;
+  }
+  .aw-cert,
+  .aw-panel[data-on] .aw-cert,
+  .aw-ring,
+  .aw-panel[data-on] .aw-ring {
+    transition-duration: 0.01s;
+    transition-delay: 0s;
+  }
+  .aw-print,
+  .aw-cert:nth-child(2) .aw-print,
+  .aw-cert:hover .aw-print {
+    transform: none;
+  }
+}

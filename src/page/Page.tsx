@@ -11,6 +11,7 @@ import Outro from '@/page/Outro'
 import RoomFooter from '@/page/RoomFooter'
 import { loadRoom } from '@/page/room-chunk'
 import Cursor from '@/page/Cursor'
+import Awards from '@/page/Awards'
 import '@/styles/page.css'
 
 /*
@@ -98,6 +99,7 @@ export default function Page({ sound, onSound, onReplay }: { sound: boolean; onS
         <Outro />
       </main>
       <RoomFooter sound={sound} onReplay={onReplay} />
+      <Awards />
       <div className="page-grain" aria-hidden="true" />
       <Cursor />
       {burst && (

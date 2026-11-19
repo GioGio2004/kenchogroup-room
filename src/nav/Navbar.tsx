@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { gsap, ScrollTrigger, useGSAP, prefersReducedMotion } from '@/lib/motion'
 import { tracker } from '@/lib/tracker'
+import { openAwards } from '@/page/awards-event'
 import '@/styles/nav.css'
 
 /*
@@ -244,6 +245,17 @@ export default function Navbar({
               }}
             >
               Return to intro
+            </button>
+            <button
+              type="button"
+              className="panel-extra"
+              onClick={() => {
+                closeMenu()
+                // let the menu slide away before the awards come in
+                window.setTimeout(openAwards, reduced ? 0 : 250)
+              }}
+            >
+              Awards
             </button>
             <a className="panel-extra" href={MAIN}>
               kenchogroup.ge <Arrow />
